@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 export default function SyncButton() {
   const [busy, setBusy] = useState(false);
@@ -20,13 +21,14 @@ export default function SyncButton() {
 
   return (
     <div className="flex items-center gap-3">
-      {fout && <span className="text-xs text-red-600">{fout}</span>}
+      {fout && <span className="text-xs text-bad-text">{fout}</span>}
       <button
         disabled={busy}
         onClick={sync}
-        className="rounded bg-teal px-3 py-1.5 text-sm font-medium text-white transition hover:bg-teal-dark disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-md bg-teal px-3 py-1.5 text-sm font-medium text-white transition hover:bg-teal-hover disabled:opacity-50"
       >
-        {busy ? "Bezig met synchroniseren…" : "Synchroniseer met Nomeo"}
+        <RefreshCw size={15} className={busy ? "animate-spin" : ""} />
+        {busy ? "Synchroniseren…" : "Synchroniseer met Nomeo"}
       </button>
     </div>
   );

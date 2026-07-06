@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import KlantenGrid, { type Kaart } from "@/components/KlantenGrid";
+import { PageHeader } from "@/components/ui/PageHeader";
+import KlantenView, { type Kaart } from "@/components/KlantenView";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,8 @@ export default async function Klanten() {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-navy">Klanten ({klanten.length})</h1>
-      <KlantenGrid klanten={kaarten} />
+      <PageHeader title="Klanten" count={klanten.length} />
+      <KlantenView klanten={kaarten} />
     </div>
   );
 }

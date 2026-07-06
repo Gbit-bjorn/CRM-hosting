@@ -19,7 +19,7 @@ const BIANCA_DOMAINS = [
 
 async function main() {
   const { db } = await import("../src/lib/db");
-  const { TARIEF, hostingPrijs } = await import("../src/lib/pricing");
+  const { hostingPrijs, domeinPrijs } = await import("../src/lib/pricing");
   const subs: Sub[] = JSON.parse(readFileSync("data/plesk-subscriptions.json", "utf8"));
 
   // 1. Bianca als reseller-klant.
@@ -57,9 +57,10 @@ async function main() {
     const site = await db.site.findFirst({ where: { naam: d.naam } });
     const isBianca = BIANCA_DOMAINS.includes(d.naam) || site?.factuurKlantId === bianca.id;
     const hostingDeel = site ? site.hostingprijs ?? hostingPrijs(isBianca) : 0;
-    const jaarbedrag = TARIEF.domein + hostingDeel;
+    const domeinDeel = domeinPrijs(d.tld);
+    const jaarbedrag = domeinDeel + hostingDeel;
 
-    await db.domein.update({ where: { id: d.id }, data: { verkoopPrijs: TARIEF.domein } });
+    await db.domein.update({ where: { id: d.id }, data: { verkoopPrijs: domeinDeel } });
 
     const abo = await db.abonnement.findFirst({ where: { omschrijving: d.naam } });
     if (abo) {

@@ -1,21 +1,53 @@
 @import "tailwindcss";
 
 @theme {
+  /* Neutrale grijsschaal (koel afgestemd op navy/teal) */
+  --color-neutral-0: #ffffff;
+  --color-neutral-25: #fafbfc;
+  --color-neutral-50: #f5f7fa;
+  --color-neutral-100: #eef1f5;
+  --color-neutral-200: #e2e6ec;
+  --color-neutral-300: #cdd3dc;
+  --color-neutral-400: #9aa4b2;
+  --color-neutral-500: #6b7685;
+  --color-neutral-600: #4d5765;
+  --color-neutral-700: #364152;
+  --color-neutral-800: #1f2a3c;
+  --color-neutral-900: #16233a;
+
+  /* Merk */
   --color-navy: #16233a;
   --color-navy-light: #24344f;
   --color-teal: #12a5b8;
-  --color-teal-dark: #0e8a9a;
-  --color-coral: #ff7a59;
-  --color-mist: #f5f7fa;
+  --color-teal-hover: #0e8a9a;
+  --color-teal-tint: #e6f6f8;
+
+  /* Semantisch (status) */
+  --color-ok-text: #16794c;
+  --color-ok-bg: #e7f4ec;
+  --color-warn-text: #8a6100;
+  --color-warn-bg: #fbf1d9;
+  --color-bad-text: #b42318;
+  --color-bad-bg: #fdeceb;
+  --color-idle-text: #4d5765;
+  --color-idle-bg: #eef1f5;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #16233a;
+  --background: #fafbfc;
+  --foreground: #1f2a3c;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04";
+}
+
+/* Tabulaire cijfers voor bedrag-/datumkolommen */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

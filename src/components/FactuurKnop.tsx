@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Check } from "lucide-react";
 
 export default function FactuurKnop({ id, status }: { id: string; status: string }) {
   const [s, setS] = useState(status);
@@ -17,13 +18,17 @@ export default function FactuurKnop({ id, status }: { id: string; status: string
   }
 
   if (s === "gefactureerd") {
-    return <span className="text-xs text-green-600">✓ gefactureerd</span>;
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-ok-text">
+        <Check size={13} /> gefactureerd
+      </span>
+    );
   }
   return (
     <button
       disabled={busy}
       onClick={() => zet("gefactureerd")}
-      className="rounded border px-2 py-0.5 text-xs disabled:opacity-50"
+      className="rounded-md border border-neutral-200 px-2 py-1 text-xs text-neutral-600 transition hover:bg-neutral-50 disabled:opacity-50"
     >
       markeer gefactureerd
     </button>

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import DomeinenTabel, { type DomeinRij } from "@/components/DomeinenTabel";
+import { PageHeader } from "@/components/ui/PageHeader";
+import DomeinenView, { type DomeinRij } from "@/components/DomeinenView";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +16,13 @@ export default async function Domeinen() {
     klant: d.klant?.naam ?? "—",
     expireDate: d.expireDate ? d.expireDate.toISOString() : null,
     autoRenew: d.autoRenew,
-    status: d.status,
     heeftHosting: hostingSet.has(d.naam),
   }));
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold text-navy">Domeinen ({domeinen.length})</h1>
-      <DomeinenTabel domeinen={rijen} />
+      <PageHeader title="Domeinen" count={domeinen.length} />
+      <DomeinenView domeinen={rijen} />
     </div>
   );
 }
