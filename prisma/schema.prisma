@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum KlantType {
+  direct
+  reseller
+  intern
+}
+
+enum FactuurStatus {
+  te_doen
+  gefactureerd
+  betaald
+}
+
+model Klant {
+  id             String       @id @default(cuid())
+  naam           String       @unique
+  type           KlantType    @default(direct)
+  vatNumber      String?
+  adres          String?
+  stad           String?
+  postcode       String?
+  land           String?      @default("Belgium")
+  notities       String?
+  comanageId     String?
+  nomeoId        String?      @unique
+  contacten      Contact[]
+  sites          Site[]       @relation("FactuurKlant")
+  eindklantSites Site[]       @relation("EindKlant")
+  domeinen       Domein[]
+  abonnementen   Abonnement[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Contact {
+  id       String  @id @default(cuid())
+  naam     String
+  email    String?
+  telefoon String?
+  rol      String?
+  klant    Klant   @relation(fields: [klantId], references: [id], onDelete: Cascade)
+  klantId  String
+}
+
+model Site {
+  id             String   @id @default(cuid())
+  naam           String
+  pleskStatus    String?
+  verbruikMB     Float?
+  hostingprijs   Float?
+  factuurKlant   Klant    @relation("FactuurKlant", fields: [factuurKlantId], references: [id])
+  factuurKlantId String
+  eindKlant      Klant?   @relation("EindKlant", fields: [eindKlantId], references: [id])
+  eindKlantId    String?
+  domeinen       Domein[]
+}
+
+model Domein {
+  id               String    @id @default(cuid())
+  naam             String    @unique
+  tld              String?
+  expireDate       DateTime?
+  registrationDate DateTime?
+  autoRenew        Boolean   @default(true)
+  status           String?
+  inkoopPrijs      Float?
+  verkoopPrijs     Float?
+  nomeoId          String?   @unique
+  klant            Klant?    @relation(fields: [klantId], references: [id])
+  klantId          String?
+  site             Site?     @relation(fields: [siteId], references: [id])
+  siteId           String?
+}
+
+model Abonnement {
+  id              String          @id @default(cuid())
+  omschrijving    String?
+  jaarbedrag      Float
+  renewalDate     DateTime
+  klant           Klant           @relation(fields: [klantId], references: [id])
+  klantId         String
+  factuurMomenten FactuurMoment[]
+}
+
+model FactuurMoment {
+  id           String        @id @default(cuid())
+  actieDatum   DateTime
+  bedrag       Float
+  status       FactuurStatus @default(te_doen)
+  comanageRef  String?
+  abonnement   Abonnement    @relation(fields: [abonnementId], references: [id], onDelete: Cascade)
+  abonnementId String
+}
