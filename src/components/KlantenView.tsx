@@ -73,7 +73,7 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
               onClick={() => setFilter(f.key)}
               className={`rounded-md border px-2.5 py-1.5 text-sm transition ${
                 filter === f.key
-                  ? "border-teal/30 bg-teal-tint text-teal-hover"
+                  ? "border-coral/30 bg-coral-tint text-coral-hover"
                   : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
               }`}
             >
@@ -97,14 +97,14 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
             <button
               onClick={() => setView("tabel")}
               aria-label="Lijstweergave"
-              className={`p-1.5 ${view === "tabel" ? "bg-neutral-100 text-navy" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}
+              className={`p-1.5 ${view === "tabel" ? "bg-neutral-100 text-charcoal" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}
             >
               <List size={16} />
             </button>
             <button
               onClick={() => setView("kaart")}
               aria-label="Kaartweergave"
-              className={`border-l border-neutral-200 p-1.5 ${view === "kaart" ? "bg-neutral-100 text-navy" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}
+              className={`border-l border-neutral-200 p-1.5 ${view === "kaart" ? "bg-neutral-100 text-charcoal" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}
             >
               <LayoutGrid size={16} />
             </button>
@@ -130,7 +130,7 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
                 {rijen.map((k) => (
                   <tr key={k.id} className={tbl.tr}>
                     <td className={tbl.tdName}>
-                      <Link href={`/klanten/${k.id}`} className="hover:text-teal-hover hover:underline">
+                      <Link href={`/klanten/${k.id}`} className="hover:text-coral-hover hover:underline">
                         {k.naam}
                       </Link>
                     </td>
@@ -153,7 +153,7 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
             <Link
               key={k.id}
               href={`/klanten/${k.id}`}
-              className="block rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-teal/40"
+              className="block rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-coral/40"
             >
               <h3 className="mb-2 font-medium leading-tight text-neutral-800">{k.naam}</h3>
               <div className="mb-3">

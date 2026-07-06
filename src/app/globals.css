@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Neutrale grijsschaal (koel afgestemd op navy/teal) */
+  /* Neutrale grijsschaal */
   --color-neutral-0: #ffffff;
   --color-neutral-25: #fafbfc;
   --color-neutral-50: #f5f7fa;
@@ -12,15 +12,15 @@
   --color-neutral-500: #6b7685;
   --color-neutral-600: #4d5765;
   --color-neutral-700: #364152;
-  --color-neutral-800: #1f2a3c;
-  --color-neutral-900: #16233a;
+  --color-neutral-800: #2b2f36;
+  --color-neutral-900: #1c1f24;
 
-  /* Merk */
-  --color-navy: #16233a;
-  --color-navy-light: #24344f;
-  --color-teal: #12a5b8;
-  --color-teal-hover: #0e8a9a;
-  --color-teal-tint: #e6f6f8;
+  /* G-Bit huisstijl */
+  --color-charcoal: #32373c;
+  --color-charcoal-light: #454b52;
+  --color-coral: #e6635d;
+  --color-coral-hover: #d85935;
+  --color-coral-tint: #fdecea;
 
   /* Semantisch (status) */
   --color-ok-text: #16794c;
@@ -37,17 +37,15 @@
 
 :root {
   --background: #fafbfc;
-  --foreground: #1f2a3c;
+  --foreground: #2b2f36;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  font-feature-settings: "cv02", "cv03", "cv04";
 }
 
-/* Tabulaire cijfers voor bedrag-/datumkolommen */
 .tnum {
   font-variant-numeric: tabular-nums;
 }

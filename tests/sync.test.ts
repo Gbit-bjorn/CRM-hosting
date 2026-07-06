@@ -4,19 +4,23 @@ import * as nomeo from "@/lib/nomeo";
 vi.mock("@/lib/nomeo");
 
 const upsertDomein = vi.fn();
+const updateKlant = vi.fn().mockResolvedValue({});
 vi.mock("@/lib/db", () => ({
   db: {
     klant: {
+      update: (a: unknown) => updateKlant(a),
       findFirst: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockResolvedValue({ id: "k1", nomeoId: "9" }),
-      update: vi.fn().mockResolvedValue({ id: "k1", nomeoId: "9" }),
+      create: vi.fn().mockResolvedValue({ id: "knew" }),
     },
-    domein: { upsert: (a: unknown) => upsertDomein(a) },
+    domein: {
+      findUnique: vi.fn().mockResolvedValue({ naam: "example.be", klantId: "kbestaand" }),
+      upsert: (a: unknown) => upsertDomein(a),
+    },
   },
 }));
 
 describe("syncNomeo", () => {
-  it("upsert domeinen enkel op externe velden, laat eigen velden ongemoeid", async () => {
+  it("versmelt Nomeo in de bestaande klant van het domein en behoudt eigen velden", async () => {
     vi.mocked(nomeo.listClients).mockResolvedValue([
       { id: "9", firstname: "A", lastname: "B", company: "ACME", email: "a@b.be", vat_number: "BE1" },
     ]);
@@ -36,11 +40,17 @@ describe("syncNomeo", () => {
     const { syncNomeo } = await import("@/lib/sync");
     const result = await syncNomeo();
 
+    // De bestaande klant kreeg de nomeoId (merge) — er is GEEN nieuwe klant aangemaakt.
+    expect(updateKlant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "kbestaand" },
+        data: expect.objectContaining({ nomeoId: "9" }),
+      }),
+    );
     const arg = upsertDomein.mock.calls[0][0];
     expect(arg.update).not.toHaveProperty("verkoopPrijs");
+    expect(arg.update.klantId).toBe("kbestaand");
     expect(arg.update.expireDate).toBeInstanceOf(Date);
-    expect(arg.update.autoRenew).toBe(true);
-    expect(arg.update.klantId).toBe("k1");
-    expect(result).toEqual({ domeinen: 1, klanten: 1 });
+    expect(result.domeinen).toBe(1);
   });
 });

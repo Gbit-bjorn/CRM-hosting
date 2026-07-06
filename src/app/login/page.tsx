@@ -14,8 +14,8 @@ export default async function Login({
     <div className="flex min-h-screen items-center justify-center bg-neutral-25 px-4">
       <div className="w-full max-w-sm space-y-6 rounded-lg border border-neutral-200 bg-white p-6">
         <div>
-          <p className="text-lg font-semibold tracking-tight text-navy">
-            G-Bit <span className="text-teal">CRM</span>
+          <p className="text-lg font-semibold tracking-tight text-charcoal">
+            G-Bit <span className="text-coral">CRM</span>
           </p>
           <p className="mt-1 text-sm text-neutral-500">Meld je aan om verder te gaan.</p>
         </div>
@@ -33,7 +33,7 @@ export default async function Login({
               await signIn("microsoft-entra-id", { redirectTo: "/" });
             }}
           >
-            <button className="w-full rounded-md bg-navy py-2 text-sm font-medium text-white transition hover:bg-navy-light">
+            <button className="w-full rounded-md bg-charcoal py-2 text-sm font-medium text-white transition hover:bg-charcoal-light">
               Aanmelden met Microsoft 365
             </button>
           </form>
@@ -59,16 +59,16 @@ export default async function Login({
             name="email"
             placeholder="E-mail"
             autoComplete="username"
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-300 focus:ring-2 focus:ring-teal/15"
+            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-300 focus:ring-2 focus:ring-coral/15"
           />
           <input
             name="password"
             type="password"
             placeholder="Wachtwoord"
             autoComplete="current-password"
-            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-300 focus:ring-2 focus:ring-teal/15"
+            className="w-full rounded-md border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-neutral-300 focus:ring-2 focus:ring-coral/15"
           />
-          <button className="w-full rounded-md bg-teal py-2 text-sm font-medium text-white transition hover:bg-teal-hover">
+          <button className="w-full rounded-md bg-coral py-2 text-sm font-medium text-white transition hover:bg-coral-hover">
             Aanmelden
           </button>
         </form>

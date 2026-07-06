@@ -25,7 +25,7 @@ export default function SyncButton() {
       <button
         disabled={busy}
         onClick={sync}
-        className="inline-flex items-center gap-1.5 rounded-md bg-teal px-3 py-1.5 text-sm font-medium text-white transition hover:bg-teal-hover disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-md bg-coral px-3 py-1.5 text-sm font-medium text-white transition hover:bg-coral-hover disabled:opacity-50"
       >
         <RefreshCw size={15} className={busy ? "animate-spin" : ""} />
         {busy ? "Synchroniseren…" : "Synchroniseer met Nomeo"}

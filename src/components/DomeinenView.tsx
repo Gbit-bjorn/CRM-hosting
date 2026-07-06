@@ -69,7 +69,7 @@ export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
               onClick={() => setFilter(f.key)}
               className={`rounded-md border px-2.5 py-1.5 text-sm transition ${
                 filter === f.key
-                  ? "border-teal/30 bg-teal-tint text-teal-hover"
+                  ? "border-coral/30 bg-coral-tint text-coral-hover"
                   : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
               }`}
             >

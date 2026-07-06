@@ -22,12 +22,30 @@ async function main() {
   const { hostingPrijs, domeinPrijs } = await import("../src/lib/pricing");
   const subs: Sub[] = JSON.parse(readFileSync("data/plesk-subscriptions.json", "utf8"));
 
-  // 1. Bianca als reseller-klant.
+  // 1. Bianca als expliciete reseller; haar 7 domeinen worden naar haar verplaatst
+  //    (corrigeert foutieve toewijzingen in de brondata, bv. vabiz.be → VZW).
   const bianca = await db.klant.upsert({
     where: { naam: "Bianca Schoonjans (vabiz)" },
     create: { naam: "Bianca Schoonjans (vabiz)", type: "reseller" },
     update: { type: "reseller" },
   });
+  await db.domein.updateMany({
+    where: { naam: { in: BIANCA_DOMAINS } },
+    data: { klantId: bianca.id },
+  });
+
+  // Consolideer alle overige 'Bianca Schoonjans'-records (bv. haar domein-only
+  // domeinen) in de ene reseller-klant, zodat Bianca niet dubbel verschijnt.
+  const dubbels = await db.klant.findMany({
+    where: { naam: { contains: "Bianca Schoonjans", mode: "insensitive" }, id: { not: bianca.id } },
+    select: { id: true },
+  });
+  for (const dub of dubbels) {
+    await db.domein.updateMany({ where: { klantId: dub.id }, data: { klantId: bianca.id } });
+    await db.abonnement.updateMany({ where: { klantId: dub.id }, data: { klantId: bianca.id } });
+    await db.contact.updateMany({ where: { klantId: dub.id }, data: { klantId: bianca.id } });
+    await db.site.updateMany({ where: { factuurKlantId: dub.id }, data: { factuurKlantId: bianca.id } });
+  }
 
   // 2. Sites uit de subscriptions (= domeinen met hosting).
   let sitesN = 0;
@@ -38,7 +56,7 @@ async function main() {
     const isBianca = BIANCA_DOMAINS.includes(naam);
     const factuurKlantId = isBianca ? bianca.id : domein?.klantId ?? null;
     if (!factuurKlantId) continue; // geen klant te bepalen → overslaan
-    const eindKlantId = isBianca ? domein?.klantId ?? null : null;
+    const eindKlantId = null;
 
     const bestaand = await db.site.findFirst({ where: { naam } });
     const data = { factuurKlantId, eindKlantId, hostingprijs: hostingPrijs(isBianca) };
@@ -73,7 +91,20 @@ async function main() {
     }
   }
 
-  console.log(`Verrijking klaar: ${sitesN} sites, ${herberekend} abonnementen herberekend.`);
+  // Ruim volledig lege klanten op (geen domein/site/abo/contact) — restjes uit de bron.
+  const opgeruimd = await db.klant.deleteMany({
+    where: {
+      type: { not: "reseller" },
+      domeinen: { none: {} },
+      sites: { none: {} },
+      abonnementen: { none: {} },
+      contacten: { none: {} },
+    },
+  });
+
+  console.log(
+    `Verrijking klaar: ${sitesN} sites, ${herberekend} abonnementen, ${opgeruimd.count} lege klanten verwijderd.`,
+  );
 }
 
 main()

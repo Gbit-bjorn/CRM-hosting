@@ -35,12 +35,12 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
       <div>
         <Link
           href="/klanten"
-          className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-teal-hover"
+          className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-coral-hover"
         >
           <ArrowLeft size={14} /> Klanten
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-2.5">
-          <h1 className="text-xl font-semibold tracking-tight text-navy">{k.naam}</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-charcoal">{k.naam}</h1>
           {k.type === "reseller" && <Badge soort="reseller">Reseller</Badge>}
           {profiel === "hosting" && <Badge soort="hosting">Hosting</Badge>}
           {profiel === "domein-only" && <Badge soort="domein">Domein-only</Badge>}

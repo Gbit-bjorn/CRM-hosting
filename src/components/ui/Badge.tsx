@@ -10,9 +10,9 @@ export type BadgeSoort =
   | "idle";
 
 const stijl: Record<BadgeSoort, string> = {
-  hosting: "bg-teal-tint text-teal-hover",
+  hosting: "bg-coral-tint text-coral-hover",
   domein: "bg-neutral-100 text-neutral-600",
-  reseller: "border border-navy/20 bg-white text-navy",
+  reseller: "border border-charcoal/20 bg-white text-charcoal",
   ok: "bg-ok-bg text-ok-text",
   warn: "bg-warn-bg text-warn-text",
   bad: "bg-bad-bg text-bad-text",

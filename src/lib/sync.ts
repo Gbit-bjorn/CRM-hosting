@@ -17,28 +17,42 @@ function num(v: unknown): number | null {
 
 export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }> {
   const [klanten, domeinen] = await Promise.all([listClients(), listDomains()]);
+  const nomeoKlant = new Map(klanten.map((k) => [k.id, k]));
 
-  // nomeo client_id -> db klant id
-  const idMap = new Map<string, string>();
-  for (const k of klanten) {
-    const naam = k.company?.trim() || `${k.firstname} ${k.lastname}`.trim() || `Nomeo ${k.id}`;
-    // Reconcilieer: eerst op nomeoId, dan op naam (versmelt met bestaande seed-klant),
-    // anders nieuw. Zo botsen we niet op de unieke naam-constraint.
-    const bestaand =
-      (await db.klant.findFirst({ where: { nomeoId: k.id } })) ??
-      (await db.klant.findFirst({ where: { naam } }));
-    const row = bestaand
-      ? await db.klant.update({
-          where: { id: bestaand.id },
-          data: { naam, nomeoId: k.id, vatNumber: k.vat_number }, // enkel externe velden; notities ongemoeid
-        })
-      : await db.klant.create({
-          data: { naam, nomeoId: k.id, vatNumber: k.vat_number },
-        });
-    idMap.set(k.id, row.id);
-  }
+  let dCount = 0;
+  const gemergd = new Set<string>();
 
   for (const d of domeinen) {
+    const bestaand = await db.domein.findUnique({ where: { naam: d.domain } });
+    const nk = nomeoKlant.get(d.client_id);
+    const nomeoNaam = nk ? nk.company?.trim() || `${nk.firstname} ${nk.lastname}`.trim() : "";
+
+    let klantId: string | null = bestaand?.klantId ?? null;
+
+    if (klantId) {
+      // Versmelt de Nomeo-identiteit IN de bestaande klant van dit domein (voorkomt dubbels).
+      if (nk && !gemergd.has(klantId)) {
+        await db.klant
+          .update({
+            where: { id: klantId },
+            data: { nomeoId: nk.id, vatNumber: nk.vat_number || undefined },
+          })
+          .catch(() => {}); // nomeoId-uniciteit kan botsen bij gedeelde klant → negeren
+        gemergd.add(klantId);
+      }
+    } else if (nk) {
+      // Domein zonder gekende klant → vind of maak op basis van Nomeo.
+      const k =
+        (await db.klant.findFirst({ where: { nomeoId: nk.id } })) ??
+        (await db.klant.findFirst({ where: { naam: nomeoNaam } }));
+      const row =
+        k ??
+        (await db.klant.create({
+          data: { naam: nomeoNaam || `Nomeo ${d.client_id}`, nomeoId: nk.id, vatNumber: nk.vat_number || null },
+        }));
+      klantId = row.id;
+    }
+
     const ext = {
       nomeoId: d.id,
       tld: d.domain.split(".").slice(1).join("."),
@@ -47,14 +61,15 @@ export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }
       autoRenew: d.auto_renew,
       status: d.status,
       inkoopPrijs: num(d.price),
-      klantId: idMap.get(d.client_id) ?? null,
+      klantId,
     };
     await db.domein.upsert({
       where: { naam: d.domain },
       create: { naam: d.domain, ...ext },
       update: ext, // GEEN verkoopPrijs of andere eigen velden
     });
+    dCount++;
   }
 
-  return { domeinen: domeinen.length, klanten: klanten.length };
+  return { domeinen: dCount, klanten: gemergd.size };
 }

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { radar } from "@/lib/billing";
+import { radar, FACTURATIE_START } from "@/lib/billing";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { tbl } from "@/components/ui/table";
 import SyncButton from "@/components/SyncButton";
@@ -20,7 +20,7 @@ function Kpi({
   label,
   waarde,
   sub,
-  tone = "text-navy",
+  tone = "text-charcoal",
 }: {
   label: string;
   waarde: string;
@@ -100,8 +100,10 @@ export default async function Radar() {
 
   const vandaag = new Date();
   const startMaand = new Date(vandaag.getFullYear(), vandaag.getMonth(), 1);
-  const { dezeMaand, komende90 } = radar(vandaag, rijen);
-  const achterstallig = rijen.filter((r) => r.status === "te_doen" && r.actieDatum < startMaand);
+  // G-Bit factureert pas vanaf februari 2026; posten daarvoor waren voor edu-tech.
+  const eigen = rijen.filter((r) => r.actieDatum >= FACTURATIE_START);
+  const { dezeMaand, komende90 } = radar(vandaag, eigen);
+  const achterstallig = eigen.filter((r) => r.status === "te_doen" && r.actieDatum < startMaand);
 
   return (
     <div className="space-y-6">
@@ -119,7 +121,7 @@ export default async function Radar() {
           label="Achterstallig"
           waarde={`€${som(achterstallig).toFixed(0)}`}
           sub={`${achterstallig.length} posten`}
-          tone={achterstallig.length ? "text-bad-text" : "text-navy"}
+          tone={achterstallig.length ? "text-bad-text" : "text-charcoal"}
         />
         <Kpi
           label="Komende 90 dagen"

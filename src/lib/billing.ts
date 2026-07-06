@@ -1,3 +1,6 @@
+// G-Bit factureert pas vanaf februari 2026; alles daarvoor was voor edu-tech.
+export const FACTURATIE_START = new Date("2026-02-01");
+
 export function actieDatum(renewalDate: Date): Date {
   const d = new Date(renewalDate);
   d.setMonth(d.getMonth() - 1);
