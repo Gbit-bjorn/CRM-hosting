@@ -24,7 +24,7 @@ export default function SyncButton() {
       <button
         disabled={busy}
         onClick={sync}
-        className="rounded border px-3 py-1 text-sm disabled:opacity-50"
+        className="rounded bg-teal px-3 py-1.5 text-sm font-medium text-white transition hover:bg-teal-dark disabled:opacity-50"
       >
         {busy ? "Bezig met synchroniseren…" : "Synchroniseer met Nomeo"}
       </button>

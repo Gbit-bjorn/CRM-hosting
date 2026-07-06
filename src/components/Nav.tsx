@@ -10,10 +10,12 @@ const items: [string, string][] = [
 
 export default function Nav() {
   return (
-    <nav className="mb-6 flex items-center gap-4 border-b px-6 py-3">
-      <span className="font-semibold">G-Bit CRM</span>
+    <nav className="mb-6 flex items-center gap-5 bg-navy px-6 py-3 text-white">
+      <span className="font-semibold tracking-tight">
+        G-Bit <span className="text-teal">CRM</span>
+      </span>
       {items.map(([href, label]) => (
-        <Link key={href} href={href} className="text-sm hover:underline">
+        <Link key={href} href={href} className="text-sm text-white/80 transition hover:text-white">
           {label}
         </Link>
       ))}
@@ -24,7 +26,7 @@ export default function Nav() {
         }}
         className="ml-auto"
       >
-        <button className="text-sm text-gray-500 hover:text-gray-800">Afmelden</button>
+        <button className="text-sm text-white/70 transition hover:text-white">Afmelden</button>
       </form>
     </nav>
   );

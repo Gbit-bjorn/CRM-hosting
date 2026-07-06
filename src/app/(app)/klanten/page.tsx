@@ -1,41 +1,39 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
-import { DataTable, type Column } from "@/components/DataTable";
+import KlantenGrid, { type Kaart } from "@/components/KlantenGrid";
 
 export const dynamic = "force-dynamic";
 
-type Rij = {
-  id: string;
-  naam: string;
-  type: string;
-  _count: { sites: number; domeinen: number };
-};
-
 export default async function Klanten() {
   const klanten = await db.klant.findMany({
-    include: { _count: { select: { sites: true, domeinen: true } } },
+    include: {
+      _count: { select: { sites: true, domeinen: true } },
+      abonnementen: { select: { jaarbedrag: true } },
+      contacten: { take: 1, select: { naam: true, email: true } },
+    },
     orderBy: { naam: "asc" },
   });
 
-  const cols: Column<Rij>[] = [
-    {
-      key: "naam",
-      label: "Klant",
-      render: (k) => (
-        <Link className="text-blue-600 hover:underline" href={`/klanten/${k.id}`}>
-          {k.naam}
-        </Link>
-      ),
-    },
-    { key: "type", label: "Type" },
-    { key: "sites", label: "Sites", render: (k) => k._count.sites },
-    { key: "domeinen", label: "Domeinen", render: (k) => k._count.domeinen },
-  ];
+  const kaarten: Kaart[] = klanten.map((k) => {
+    const jaartotaal = k.abonnementen.reduce((s, a) => s + a.jaarbedrag, 0);
+    const profiel =
+      k._count.sites > 0 ? "hosting" : k._count.domeinen > 0 ? "domein-only" : "leeg";
+    const c = k.contacten[0];
+    return {
+      id: k.id,
+      naam: k.naam,
+      type: k.type,
+      sites: k._count.sites,
+      domeinen: k._count.domeinen,
+      jaartotaal,
+      profiel,
+      contact: c ? c.email ?? c.naam : null,
+    };
+  });
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold">Klanten ({klanten.length})</h1>
-      <DataTable columns={cols} rows={klanten as Rij[]} />
+      <h1 className="mb-4 text-lg font-semibold text-navy">Klanten ({klanten.length})</h1>
+      <KlantenGrid klanten={kaarten} />
     </div>
   );
 }

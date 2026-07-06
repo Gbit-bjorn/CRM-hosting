@@ -29,6 +29,17 @@ function kolommen(): Column<Rij>[] {
   ];
 }
 
+function Paneel({ titel, aantal, children }: { titel: string; aantal: number; children: React.ReactNode }) {
+  return (
+    <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <h2 className="mb-3 font-medium text-navy">
+        {titel} <span className="text-gray-400">({aantal})</span>
+      </h2>
+      {children}
+    </section>
+  );
+}
+
 export default async function Radar() {
   const momenten = await db.factuurMoment.findMany({
     include: { abonnement: { include: { klant: true } } },
@@ -48,21 +59,17 @@ export default async function Radar() {
   const cols = kolommen();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Facturatie-radar</h1>
+        <h1 className="text-lg font-semibold text-navy">Facturatie-radar</h1>
         <SyncButton />
       </div>
-
-      <section>
-        <h2 className="mb-2 font-medium">Deze maand te factureren ({dezeMaand.length})</h2>
+      <Paneel titel="Deze maand te factureren" aantal={dezeMaand.length}>
         <DataTable columns={cols} rows={dezeMaand} />
-      </section>
-
-      <section>
-        <h2 className="mb-2 font-medium">Komende 90 dagen ({komende90.length})</h2>
+      </Paneel>
+      <Paneel titel="Komende 90 dagen" aantal={komende90.length}>
         <DataTable columns={cols} rows={komende90} />
-      </section>
+      </Paneel>
     </div>
   );
 }

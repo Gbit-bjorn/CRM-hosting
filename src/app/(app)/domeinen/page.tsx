@@ -1,53 +1,28 @@
 import { db } from "@/lib/db";
-import { DataTable, type Column } from "@/components/DataTable";
+import DomeinenTabel, { type DomeinRij } from "@/components/DomeinenTabel";
 
 export const dynamic = "force-dynamic";
 
-type Rij = {
-  naam: string;
-  klant: { naam: string } | null;
-  expireDate: Date | null;
-  autoRenew: boolean;
-  status: string | null;
-};
-
-const binnenkort = (d: Date | null) =>
-  d ? (+d - Date.now()) / 86_400_000 < 30 : false;
-
 export default async function Domeinen() {
-  const domeinen = await db.domein.findMany({
-    include: { klant: true },
-    orderBy: { expireDate: "asc" },
-  });
+  const [domeinen, sites] = await Promise.all([
+    db.domein.findMany({ include: { klant: true }, orderBy: { expireDate: "asc" } }),
+    db.site.findMany({ select: { naam: true } }),
+  ]);
+  const hostingSet = new Set(sites.map((s) => s.naam));
 
-  const cols: Column<Rij>[] = [
-    { key: "naam", label: "Domein" },
-    { key: "klant", label: "Klant", render: (d) => d.klant?.naam ?? "—" },
-    {
-      key: "expireDate",
-      label: "Vervalt",
-      render: (d) =>
-        d.expireDate ? (
-          <span className={binnenkort(d.expireDate) ? "font-medium text-red-600" : ""}>
-            {d.expireDate.toISOString().slice(0, 10)}
-          </span>
-        ) : (
-          "—"
-        ),
-    },
-    {
-      key: "autoRenew",
-      label: "Auto-renew",
-      render: (d) =>
-        d.autoRenew ? "aan" : <span className="font-medium text-red-600">UIT</span>,
-    },
-    { key: "status", label: "Status", render: (d) => d.status ?? "—" },
-  ];
+  const rijen: DomeinRij[] = domeinen.map((d) => ({
+    naam: d.naam,
+    klant: d.klant?.naam ?? "—",
+    expireDate: d.expireDate ? d.expireDate.toISOString() : null,
+    autoRenew: d.autoRenew,
+    status: d.status,
+    heeftHosting: hostingSet.has(d.naam),
+  }));
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-semibold">Domeinen ({domeinen.length})</h1>
-      <DataTable columns={cols} rows={domeinen as Rij[]} />
+      <h1 className="mb-4 text-lg font-semibold text-navy">Domeinen ({domeinen.length})</h1>
+      <DomeinenTabel domeinen={rijen} />
     </div>
   );
 }
