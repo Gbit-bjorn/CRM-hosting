@@ -33,6 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# lokale data-exports (gevoelig, niet committen)
+/data
+
+# gegenereerde Prisma client
+/src/generated
+
 # vercel
 .vercel
 
