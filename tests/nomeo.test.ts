@@ -14,18 +14,22 @@ describe("listDomains", () => {
       .mockResolvedValueOnce({ ok: true, json: async () => ({ access_token: "jwt123" }) })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => [
-          {
-            id: "1",
-            domain: "example.be",
-            client_id: "9",
-            expire_date: "2026-08-03",
-            registration_date: "2021-08-03",
-            auto_renew: true,
-            status: "Active",
-            price: 11.5,
-          },
-        ],
+        json: async () => ({
+          success: true,
+          message: "Domain list",
+          data: [
+            {
+              id: "1",
+              domain: "example.be",
+              client_id: "9",
+              expire_date: "2026-08-03",
+              registration_date: "2021-08-03",
+              auto_renew: true,
+              status: "Active",
+              price: 11.5,
+            },
+          ],
+        }),
       });
     vi.stubGlobal("fetch", fetchMock);
 

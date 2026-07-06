@@ -6,7 +6,11 @@ vi.mock("@/lib/nomeo");
 const upsertDomein = vi.fn();
 vi.mock("@/lib/db", () => ({
   db: {
-    klant: { upsert: vi.fn().mockResolvedValue({ id: "k1", nomeoId: "9" }) },
+    klant: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: "k1", nomeoId: "9" }),
+      update: vi.fn().mockResolvedValue({ id: "k1", nomeoId: "9" }),
+    },
     domein: { upsert: (a: unknown) => upsertDomein(a) },
   },
 }));
