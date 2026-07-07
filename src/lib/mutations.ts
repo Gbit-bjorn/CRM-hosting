@@ -44,28 +44,38 @@ export async function deleteContact(id: string, klantId: string) {
 }
 
 export async function updateDomein(id: string, fd: FormData) {
-  await db.domein.update({
+  const klantId = tekst(fd, "klantId");
+  const d = await db.domein.update({
     where: { id },
-    data: {
-      verkoopPrijs: getal(fd, "verkoopPrijs"),
-      klantId: tekst(fd, "klantId"),
-    },
+    data: { verkoopPrijs: getal(fd, "verkoopPrijs"), klantId },
   });
+  // Facturatie én hosting volgen de klant van het domein mee.
+  if (klantId) {
+    await db.abonnement.updateMany({ where: { omschrijving: d.naam }, data: { klantId } });
+    await db.site.updateMany({ where: { naam: d.naam }, data: { factuurKlantId: klantId } });
+  }
   revalidatePath(`/domeinen/${id}`);
   revalidatePath("/domeinen");
   revalidatePath("/klanten");
+  revalidatePath("/");
 }
 
 export async function updateSite(id: string, fd: FormData) {
-  await db.site.update({
+  const factuurKlantId = tekst(fd, "factuurKlantId");
+  const s = await db.site.update({
     where: { id },
     data: {
       hostingprijs: getal(fd, "hostingprijs"),
-      factuurKlantId: tekst(fd, "factuurKlantId") ?? undefined,
+      factuurKlantId: factuurKlantId ?? undefined,
       eindKlantId: tekst(fd, "eindKlantId"),
     },
   });
+  // Het abonnement voor deze site volgt de factuurklant mee.
+  if (factuurKlantId) {
+    await db.abonnement.updateMany({ where: { omschrijving: s.naam }, data: { klantId: factuurKlantId } });
+  }
   revalidatePath(`/sites/${id}`);
   revalidatePath("/sites");
   revalidatePath("/klanten");
+  revalidatePath("/");
 }
