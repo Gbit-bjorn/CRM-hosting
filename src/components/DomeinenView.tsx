@@ -1,11 +1,13 @@
 "use client";
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Badge } from "@/components/ui/Badge";
 import { StatusDot, type Tone } from "@/components/ui/StatusDot";
 import { tbl } from "@/components/ui/table";
 
 export type DomeinRij = {
+  id: string;
   naam: string;
   klant: string;
   expireDate: string | null;
@@ -106,8 +108,12 @@ export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
               {rijen.map((d) => {
                 const s = statusVan(d);
                 return (
-                  <tr key={d.naam} className={tbl.tr}>
-                    <td className={tbl.tdName}>{d.naam}</td>
+                  <tr key={d.id} className={tbl.tr}>
+                    <td className={tbl.tdName}>
+                      <Link href={`/domeinen/${d.id}`} className="hover:text-coral-hover hover:underline">
+                        {d.naam}
+                      </Link>
+                    </td>
                     <td className={tbl.td}>{d.klant}</td>
                     <td className={tbl.td}>
                       <Badge soort={d.heeftHosting ? "hosting" : "domein"}>

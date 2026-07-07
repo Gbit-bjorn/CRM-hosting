@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { tbl } from "@/components/ui/table";
@@ -27,7 +28,11 @@ export default async function Sites() {
             <tbody>
               {sites.map((s) => (
                 <tr key={s.id} className={tbl.tr}>
-                  <td className={tbl.tdName}>{s.naam}</td>
+                  <td className={tbl.tdName}>
+                    <Link href={`/sites/${s.id}`} className="hover:text-coral-hover hover:underline">
+                      {s.naam}
+                    </Link>
+                  </td>
                   <td className={tbl.td}>{s.factuurKlant?.naam ?? "—"}</td>
                   <td className={tbl.td}>{s.eindKlant?.naam ?? "—"}</td>
                   <td className={tbl.tdNum}>

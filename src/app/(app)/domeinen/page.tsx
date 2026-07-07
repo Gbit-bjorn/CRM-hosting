@@ -12,6 +12,7 @@ export default async function Domeinen() {
   const hostingSet = new Set(sites.map((s) => s.naam));
 
   const rijen: DomeinRij[] = domeinen.map((d) => ({
+    id: d.id,
     naam: d.naam,
     klant: d.klant?.naam ?? "—",
     expireDate: d.expireDate ? d.expireDate.toISOString() : null,
