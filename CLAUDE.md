@@ -1,1 +1,55 @@
 @AGENTS.md
+
+# G-Bit Hosting CRM — projectgids voor Claude
+
+Interne mini-CRM + facturatie-radar voor G-Bit (hostingbeheer). Gebruikers: Bjorn, Gill, Jarn.
+**Lees `docs/HANDOFF.md` voor de volledige stand van zaken, achtergrond en de refinement-backlog.**
+
+- **Live:** https://crm-hosting.vercel.app (auto-deploy bij elke push naar `main`)
+- **Repo:** GitHub `Gbit-bjorn/CRM-hosting` (privé) · lokaal: `C:\Hosting\hosting-crm`
+- **Login (admin-fallback):** `bjorn@g-bit.be` / wachtwoord staat in `.env.local` (lokaal) en Vercel env vars
+
+## Stack (allemaal nieuwe majors — let op breaking changes)
+Next.js 16 (App Router, Turbopack) · React 19 · Prisma 7 · PostgreSQL (Neon, **gedeeld dev+prod**) ·
+Auth.js v5 · Tailwind v4 · Inter (next/font) · lucide-react · Vitest.
+
+### Kritische gotchas
+- **Next 16:** `middleware` heet nu `proxy.ts`. Wij vermijden dat: auth-gate via `requireAuth()` in `src/lib/auth-guard.ts`, aangeroepen in `src/app/(app)/layout.tsx`. `params`/`searchParams` zijn **async** (Promise).
+- **Prisma 7:** generator = `prisma-client` met `output = "../src/generated/prisma"` (git-ignored, wordt door `prisma generate` in de build aangemaakt). Importeer `PrismaClient` uit dat pad (zie `src/lib/db.ts`, met `@prisma/adapter-pg`). CLI-config in `prisma.config.ts` (laadt `.env.local` via dotenv). `migrate` draait **niet** automatisch `generate`.
+- **Tailwind v4:** kleuren als tokens in `src/app/globals.css` (`@theme`). **GEEN inline CSS** (`style={...}`) — enkel utility-classes. Klasse-strings moeten letterlijk in de source staan (JIT-scan).
+- Voor je Next-code schrijft: lees de docs in `node_modules/next/dist/docs/` (zie AGENTS.md).
+
+## Huisstijl (mag NIET "AI-gemaakt" ogen)
+Echte G-Bit-kleuren uit g-bit.be: **charcoal `#32373c`** + **coral `#e6635d`** accent (tokens heten `charcoal`/`coral`).
+Neutrale grijsschaal als basis, coral spaarzaam. Semantische status = groen/amber/rood (nooit coral voor betekenis).
+**Vermijd:** paars/indigo, gradients, `rounded-2xl`, grote schaduwen, emoji, marketing-copy. Dichte tabellen,
+sticky headers, rechts-uitgelijnde tabulaire cijfers (`.tnum`), dot+label status. Basis: `docs/HANDOFF.md` §Design.
+
+## Datamodel & pipeline
+Modellen: `Klant, Contact, Site, Domein, Abonnement, FactuurMoment` (zie `prisma/schema.prisma`).
+- **Eigen velden** (notities, prijzen, factuurstatus, klant-toewijzingen) worden **nooit** door de Nomeo-sync overschreven.
+- `Site` heeft `factuurKlant` (wie betaalt) + `eindKlant` (wie zit erachter).
+- Data-opbouw = 3 stappen: **seed** (`prisma/seed.ts`, uit `data/plesk-domains.json`) → **sync** (`prisma/sync-once.ts`, Nomeo, versmelt op domein) → **enrich** (`prisma/enrich.ts`: sites uit subscriptions, Bianca reseller, tarieven).
+  Volledige herbouw = alles wissen + die 3 opnieuw (zie HANDOFF).
+
+## Bedrijfsregels
+- **Facturatie pas vanaf feb 2026** (`FACTURATIE_START` in `src/lib/billing.ts`); alles daarvoor was voor edu-tech → verborgen op de radar.
+- **Tarieven (excl. btw):** hosting €90 standaard / €72 reseller · domein .be/.nl/.eu €15, .com €19 (`src/lib/pricing.ts`).
+- **Bianca Schoonjans (vabiz)** = enige reseller. Haar 7 hosting-domeinen + 3 domein-only (`magischminitheaterabra.be`, `nicktails.be`, `saltandsweetbakery.be` — **nog te verifiëren of echt van haar**).
+- Een domein/site **verplaatsen** neemt domein + hosting-site + abonnement samen mee (zie `src/lib/mutations.ts`).
+
+## Commando's (in `hosting-crm/`)
+```
+npm run dev            # dev-server (poort 3000)
+npm test               # Vitest (5 tests: billing, nomeo, sync)
+npm run build          # prisma generate && next build (productie)
+npm run db:seed        # seed uit data/*.json
+npm run db:enrich      # sites + Bianca + tarieven
+npx tsx prisma/sync-once.ts   # eenmalige Nomeo-sync vanaf CLI
+```
+Data-JSON in `data/` (git-ignored) komt uit de Excel-exports in `C:\Hosting\` (converteer met openpyxl; zie HANDOFF).
+
+## Secrets
+In `.env.local` (lokaal, git-ignored) en Vercel env vars. Nomeo = OAuth2 client-credentials (`api.nomeo.com`).
+De secrets zijn ooit in chat gedeeld → overweeg rotatie van Nomeo-secret + `AUTH_SECRET`. Admin-wachtwoord is
+zwak (publieke app) → versterk het in Vercel.
