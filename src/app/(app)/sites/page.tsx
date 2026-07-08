@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { tbl } from "@/components/ui/table";
+import SitesView from "@/components/SitesView";
 
 export const dynamic = "force-dynamic";
 
@@ -14,37 +13,15 @@ export default async function Sites() {
   return (
     <div>
       <PageHeader title="Sites" count={sites.length} />
-      <div className={tbl.wrap}>
-        <div className={tbl.scroll}>
-          <table className={tbl.table}>
-            <thead>
-              <tr>
-                <th className={tbl.th}>Site</th>
-                <th className={tbl.th}>Factuurklant</th>
-                <th className={tbl.th}>Eindklant</th>
-                <th className={tbl.thNum}>Hosting/jaar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sites.map((s) => (
-                <tr key={s.id} className={tbl.tr}>
-                  <td className={tbl.tdName}>
-                    <Link href={`/sites/${s.id}`} className={tbl.rowLink}>
-                      {s.naam}
-                    </Link>
-                  </td>
-                  <td className={tbl.td}>{s.factuurKlant?.naam ?? "—"}</td>
-                  <td className={tbl.td}>{s.eindKlant?.naam ?? "—"}</td>
-                  <td className={tbl.tdNum}>
-                    {s.hostingprijs != null ? `€${s.hostingprijs.toFixed(0)}` : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <p className="mt-2 text-xs text-neutral-400">Bedragen excl. btw</p>
+      <SitesView
+        sites={sites.map((s) => ({
+          id: s.id,
+          naam: s.naam,
+          factuurKlant: s.factuurKlant?.naam ?? "—",
+          eindKlant: s.eindKlant?.naam ?? null,
+          hostingprijs: s.hostingprijs,
+        }))}
+      />
     </div>
   );
 }

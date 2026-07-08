@@ -45,6 +45,9 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
   const [sort, setSort] = useState("naam");
   const [view, setView] = useState<"tabel" | "kaart">("tabel");
 
+  // De Contact-kolom is nu overal leeg — verberg hem tot er data is.
+  const heeftContacten = klanten.some((k) => k.contact);
+
   const rijen = useMemo(() => {
     const gefilterd = klanten.filter((k) => {
       if (zoek && !k.naam.toLowerCase().includes(zoek.toLowerCase())) return false;
@@ -93,7 +96,7 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
               </option>
             ))}
           </select>
-          <div className="flex overflow-hidden rounded-md border border-neutral-200">
+          <div className="hidden overflow-hidden rounded-md border border-neutral-200 md:flex">
             <button
               onClick={() => setView("tabel")}
               aria-label="Lijstweergave"
@@ -112,71 +115,79 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
         </div>
       </div>
 
-      {view === "tabel" ? (
-        <div className={tbl.wrap}>
-          <div className={tbl.scroll}>
-            <table className={tbl.table}>
-              <thead>
-                <tr>
-                  <th className={tbl.th}>Klant</th>
-                  <th className={tbl.th}>Type</th>
-                  <th className={tbl.th}>Contact</th>
-                  <th className={tbl.thNum}>Domeinen</th>
-                  <th className={tbl.thNum}>Sites</th>
-                  <th className={tbl.thNum}>Per jaar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rijen.map((k) => (
-                  <tr key={k.id} className={tbl.tr}>
-                    <td className={tbl.tdName}>
-                      <Link href={`/klanten/${k.id}`} className={tbl.rowLink}>
-                        {k.naam}
-                      </Link>
-                    </td>
-                    <td className={tbl.td}>
-                      <Tags k={k} />
-                    </td>
-                    <td className={tbl.td}>{k.contact ?? "—"}</td>
-                    <td className={tbl.tdNum}>{k.domeinen}</td>
-                    <td className={tbl.tdNum}>{k.sites}</td>
-                    <td className={tbl.tdNum}>€{k.jaartotaal.toFixed(0)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {(() => {
+        const kaartGrid = (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {rijen.map((k) => (
+              <Link
+                key={k.id}
+                href={`/klanten/${k.id}`}
+                className="block rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-coral/40"
+              >
+                <h3 className="mb-2 font-medium leading-tight text-neutral-800">{k.naam}</h3>
+                <div className="mb-3">
+                  <Tags k={k} />
+                </div>
+                <dl className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-neutral-400">Domeinen</dt>
+                    <dd className="tnum font-medium text-neutral-700">{k.domeinen}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-neutral-400">Sites</dt>
+                    <dd className="tnum font-medium text-neutral-700">{k.sites}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-neutral-400">Per jaar</dt>
+                    <dd className="tnum font-medium text-neutral-700">€{k.jaartotaal.toFixed(0)}</dd>
+                  </div>
+                </dl>
+              </Link>
+            ))}
           </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {rijen.map((k) => (
-            <Link
-              key={k.id}
-              href={`/klanten/${k.id}`}
-              className="block rounded-lg border border-neutral-200 bg-white p-4 transition hover:border-coral/40"
-            >
-              <h3 className="mb-2 font-medium leading-tight text-neutral-800">{k.naam}</h3>
-              <div className="mb-3">
-                <Tags k={k} />
+        );
+        if (view === "kaart") return kaartGrid;
+        return (
+          <>
+            {/* Op mobiel is de tabel onbruikbaar smal → altijd kaarten tonen. */}
+            <div className="md:hidden">{kaartGrid}</div>
+            <div className={`${tbl.wrap} hidden md:block`}>
+              <div className={tbl.scroll}>
+                <table className={tbl.table}>
+                  <thead>
+                    <tr>
+                      <th className={tbl.th}>Klant</th>
+                      <th className={tbl.th}>Type</th>
+                      {heeftContacten && <th className={tbl.th}>Contact</th>}
+                      <th className={tbl.thNum}>Domeinen</th>
+                      <th className={tbl.thNum}>Sites</th>
+                      <th className={tbl.thNum}>Per jaar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rijen.map((k) => (
+                      <tr key={k.id} className={tbl.tr}>
+                        <td className={tbl.tdName}>
+                          <Link href={`/klanten/${k.id}`} className={tbl.rowLink}>
+                            {k.naam}
+                          </Link>
+                        </td>
+                        <td className={tbl.td}>
+                          <Tags k={k} />
+                        </td>
+                        {heeftContacten && <td className={tbl.td}>{k.contact ?? "—"}</td>}
+                        <td className={tbl.tdNum}>{k.domeinen}</td>
+                        <td className={tbl.tdNum}>{k.sites}</td>
+                        <td className={tbl.tdNum}>€{k.jaartotaal.toFixed(0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <dl className="grid grid-cols-3 gap-2 text-sm">
-                <div>
-                  <dt className="text-xs text-neutral-400">Domeinen</dt>
-                  <dd className="tnum font-medium text-neutral-700">{k.domeinen}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-neutral-400">Sites</dt>
-                  <dd className="tnum font-medium text-neutral-700">{k.sites}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-neutral-400">Per jaar</dt>
-                  <dd className="tnum font-medium text-neutral-700">€{k.jaartotaal.toFixed(0)}</dd>
-                </div>
-              </dl>
-            </Link>
-          ))}
-        </div>
-      )}
+            </div>
+          </>
+        );
+      })()}
 
       <p className="text-xs text-neutral-400">
         {rijen.length} van {klanten.length} klanten · bedragen excl. btw

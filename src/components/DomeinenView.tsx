@@ -26,12 +26,16 @@ const sorts = [
 ];
 
 function statusVan(d: DomeinRij): { tone: Tone; label: string } {
+  const dagen = d.expireDate
+    ? (new Date(d.expireDate).getTime() - Date.now()) / 86_400_000
+    : null;
+  // Met auto-renew aan verlengt het domein vanzelf — een verstreken datum is dan
+  // hoogstens verouderde data, geen alarm.
+  if (dagen != null && dagen < 0)
+    return d.autoRenew ? { tone: "idle", label: "verlengt automatisch" } : { tone: "bad", label: "verlopen" };
+  if (dagen != null && dagen < 30)
+    return d.autoRenew ? { tone: "ok", label: "verlengt automatisch" } : { tone: "warn", label: "vervalt < 30d" };
   if (!d.autoRenew) return { tone: "warn", label: "auto-renew uit" };
-  if (d.expireDate) {
-    const dagen = (new Date(d.expireDate).getTime() - Date.now()) / 86_400_000;
-    if (dagen < 0) return { tone: "bad", label: "verlopen" };
-    if (dagen < 30) return { tone: "warn", label: "vervalt < 30d" };
-  }
   return { tone: "ok", label: "actief" };
 }
 
@@ -92,7 +96,34 @@ export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
         </select>
       </div>
 
-      <div className={tbl.wrap}>
+      <div className="space-y-2 md:hidden">
+        {rijen.map((d) => {
+          const s = statusVan(d);
+          return (
+            <Link
+              key={d.id}
+              href={`/domeinen/${d.id}`}
+              className="block rounded-lg border border-neutral-200 bg-white p-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-neutral-800">{d.naam}</p>
+                <Badge soort={d.heeftHosting ? "hosting" : "domein"}>
+                  {d.heeftHosting ? "Hosting" : "Domein"}
+                </Badge>
+              </div>
+              <p className="mt-0.5 text-xs text-neutral-500">{d.klant}</p>
+              <div className="mt-1.5 flex items-center justify-between gap-3">
+                <StatusDot tone={s.tone}>{s.label}</StatusDot>
+                {d.expireDate && (
+                  <p className="tnum text-xs text-neutral-500">vervalt {d.expireDate.slice(0, 10)}</p>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className={`${tbl.wrap} hidden md:block`}>
         <div className={tbl.scroll}>
           <table className={tbl.table}>
             <thead>

@@ -105,6 +105,13 @@ model Abonnement {
   factuurMomenten FactuurMoment[]
 }
 
+// Kleine key-value-opslag voor app-metadata (bv. tijdstip laatste Nomeo-sync).
+model Instelling {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model FactuurMoment {
   id           String        @id @default(cuid())
   actieDatum   DateTime

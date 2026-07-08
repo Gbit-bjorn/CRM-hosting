@@ -92,9 +92,15 @@ kop-commentaar / de conversie in de git-historie). Bronbestanden: `C:\Hosting\co
   Zij heeft nu 10 domeinen: 7 hosting (academiedevonk, bartspanhove, phinicka, rvenergy, tophatevents, tuineneron,
   vabiz) + 3 domein-only (`magischminitheaterabra.be`, `nicktails.be`, `saltandsweetbakery.be`) die via naam-matching
   bij haar zijn gekomen — **te verifiëren of die 3 echt van haar zijn**.
-- **Facturatie-radar:** KPI's (deze maand / achterstallig / komende 90 dagen) + lijsten (met vervaldatum);
-  "markeer gefactureerd" zet de status. Extra: **"Achterstallig per klant"** groepeert alle openstaande posten
-  sinds februari per klant (één factuur per klant). actieDatum = renewalDate − 45 dagen.
+- **Facturatie-radar:** KPI's (deze maand / **"te laat te factureren"** — bewust niet "achterstallig", dat
+  las als "klant heeft niet betaald" / komende 90 dagen) + lijsten met vervaldatum en prijsuitsplitsing
+  (hosting + domeindeel); "markeer gefactureerd" zet de status. **"Te laat — totaal per klant"** groepeert
+  per klant (één factuur per klant volstaat). Mobiel tonen alle lijsten kaartjes i.p.v. tabellen.
+  actieDatum = renewalDate − 45 dagen. Laatste Nomeo-sync-tijdstip staat in `Instelling`
+  (key `laatsteSyncNomeo`, gezet door `syncNomeo()`), zichtbaar naast de sync-knop.
+- **Domeinstatus:** een verstreken vervaldatum met auto-renew AAN toont "verlengt automatisch" (neutraal),
+  niet rood "verlopen" — 17 domeinen (o.a. de KOW-scholen) zitten níét in het Nomeo-portfolio en hebben
+  dus mogelijk verouderde Plesk-datums. **Openstaande vraag: waar zijn die geregistreerd?**
 
 ## 6. Nomeo-API
 
@@ -114,6 +120,8 @@ key beheren op app.comanage.me → instellingen → integraties). Docs: https://
 Client: `src/lib/comanage.ts` (read-only: contacts/customers/invoices, gepagineerd via `?page=&limit=`).
 Let op: records heten `number` (niet `id`); `/contacts` bevat óók leveranciers → filter op `customer: true`;
 facturen hebben `status` draft/pending/paid en `totals.total_ex_vat`.
+- Gekoppelde klanten tonen op hun detailpagina een **read-only paneel "Facturatiegegevens (CoManage)"**
+  (naam, klantnummer, e-mail, telefoon, btw, facturatieadres — live via `getContact()`).
 - `prisma/comanage-check.ts` — verkenning + match-rapport (read-only).
 - `prisma/comanage-koppel.ts` — vult `Klant.comanageId` (btw-match → naam-tokens → handmatige mapping;
   bij dubbele CoManage-contacten wint het contact met de meeste facturen). Gedraaid op 2026-07-08:

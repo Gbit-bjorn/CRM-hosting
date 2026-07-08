@@ -71,5 +71,13 @@ export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }
     dCount++;
   }
 
+  // Tijdstip bijhouden zodat de UI kan tonen hoe vers de data is.
+  const nu = new Date().toISOString();
+  await db.instelling.upsert({
+    where: { key: "laatsteSyncNomeo" },
+    create: { key: "laatsteSyncNomeo", value: nu },
+    update: { value: nu },
+  });
+
   return { domeinen: dCount, klanten: gemergd.size };
 }

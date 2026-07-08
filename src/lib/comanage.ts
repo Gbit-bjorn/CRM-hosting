@@ -11,6 +11,14 @@ export const comanageActief = () => !!process.env.COMANAGE_API_KEY;
 
 // CoManage identificeert records met `number` (niet `id`). We typeren enkel
 // wat we gebruiken en laten de rest open zodat verkenning niets wegfiltert.
+export type CoAdres = {
+  type?: string | null;
+  address_line_1?: string | null;
+  city?: string | null;
+  postcode?: string | null;
+  country?: string | null;
+};
+
 export type CoContact = {
   number: number;
   name?: string | null;
@@ -19,6 +27,8 @@ export type CoContact = {
   customer_number?: string | null;
   vat_number?: string | null;
   email?: string | null;
+  phone?: string | null;
+  addresses?: CoAdres[];
   trashed?: boolean;
   [key: string]: unknown;
 };
@@ -63,3 +73,9 @@ async function getAll<T>(path: string): Promise<T[]> {
 export const listContacts = () => getAll<CoContact>("/contacts");
 export const listCustomers = () => getAll<CoContact>("/customers");
 export const listInvoices = () => getAll<CoInvoice>("/invoices");
+
+/** Eén contact ophalen op CoManage-nummer (= Klant.comanageId). */
+export async function getContact(number: string | number): Promise<CoContact> {
+  const json = await authedGet<{ data?: CoContact } | CoContact>(`/contacts/${number}`);
+  return ((json as { data?: CoContact }).data ?? json) as CoContact;
+}

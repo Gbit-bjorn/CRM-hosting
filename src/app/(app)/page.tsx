@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { db } from "@/lib/db";
 import { radar, isEigenFacturatie } from "@/lib/billing";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -86,12 +87,17 @@ function Kaartjes({ rijen }: { rijen: Rij[] }) {
   );
 }
 
-function Lijst({ titel, rijen }: { titel: string; rijen: Rij[] }) {
-  return (
-    <section>
-      <h2 className="mb-2 text-sm font-semibold text-neutral-700">
-        {titel} <span className="tnum text-neutral-400">({rijen.length})</span>
-      </h2>
+function Lijst({
+  titel,
+  rijen,
+  inklapbaar = false,
+}: {
+  titel: string;
+  rijen: Rij[];
+  inklapbaar?: boolean;
+}) {
+  const inhoud = (
+    <>
       <Kaartjes rijen={rijen} />
       <div className={`${tbl.wrap} hidden md:block`}>
         <table className={tbl.table}>
@@ -99,7 +105,7 @@ function Lijst({ titel, rijen }: { titel: string; rijen: Rij[] }) {
             <tr>
               <th className={tbl.th}>Klant</th>
               <th className={tbl.th}>Betreft</th>
-              <th className={tbl.thNum}>Factureren voor</th>
+              <th className={tbl.thNum}>Factureren vóór</th>
               <th className={tbl.thNum}>Vervalt op</th>
               <th className={tbl.thNum}>Bedrag</th>
               <th className={tbl.thNum}></th>
@@ -138,6 +144,26 @@ function Lijst({ titel, rijen }: { titel: string; rijen: Rij[] }) {
           </tbody>
         </table>
       </div>
+    </>
+  );
+
+  if (inklapbaar) {
+    return (
+      <details className="group">
+        <summary className="mb-2 flex cursor-pointer list-none items-center gap-1 text-sm font-semibold text-neutral-700">
+          <ChevronRight size={14} className="text-neutral-400 transition group-open:rotate-90" />
+          {titel} <span className="tnum text-neutral-400">({rijen.length})</span>
+        </summary>
+        {inhoud}
+      </details>
+    );
+  }
+  return (
+    <section>
+      <h2 className="mb-2 text-sm font-semibold text-neutral-700">
+        {titel} <span className="tnum text-neutral-400">({rijen.length})</span>
+      </h2>
+      {inhoud}
     </section>
   );
 }
@@ -162,17 +188,40 @@ function PerKlant({ rijen }: { rijen: Rij[] }) {
   return (
     <section>
       <h2 className="mb-2 text-sm font-semibold text-neutral-700">
-        Achterstallig per klant <span className="tnum text-neutral-400">({samengevat.length})</span>
+        Te laat — totaal per klant <span className="tnum text-neutral-400">({samengevat.length})</span>
       </h2>
       <p className="mb-2 text-xs text-neutral-500">
-        Eén factuur per klant volstaat — dit zijn de totalen van alle openstaande posten sinds februari.
+        Deze facturen hadden al de deur uit gemoeten. Eén factuur per klant volstaat — dit zijn de totalen
+        van alle te late regels sinds februari.
       </p>
-      <div className={tbl.wrap}>
+      <div className="space-y-2 md:hidden">
+        {samengevat.map((g) => (
+          <Link
+            key={g.klantId}
+            href={`/klanten/${g.klantId}`}
+            className="block rounded-lg border border-neutral-200 bg-white p-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-neutral-800">{g.klant}</p>
+              <p className="tnum shrink-0 text-sm font-semibold text-charcoal">€{g.totaal.toFixed(2)}</p>
+            </div>
+            <p className="tnum mt-0.5 text-xs text-neutral-500">
+              {g.posten} {g.posten === 1 ? "regel" : "regels"}
+            </p>
+            {registratieBlokkeert(g.leverancierStatus) && (
+              <div className="mt-1.5">
+                <Badge soort="warn">eerst leveranciersregistratie</Badge>
+              </div>
+            )}
+          </Link>
+        ))}
+      </div>
+      <div className={`${tbl.wrap} hidden md:block`}>
         <table className={tbl.table}>
           <thead>
             <tr>
               <th className={tbl.th}>Klant</th>
-              <th className={tbl.thNum}>Posten</th>
+              <th className={tbl.thNum}>Regels</th>
               <th className={tbl.thNum}>Totaal</th>
               <th className={tbl.th}>Opgelet</th>
             </tr>
@@ -245,41 +294,55 @@ export default async function Radar() {
   // Verlengingen vóór maart 2026 waren nog voor edu-tech → niet op de radar.
   const eigen = rijen.filter((r) => isEigenFacturatie(r.renewalDate));
   const { dezeMaand, komende90 } = radar(vandaag, eigen);
-  const achterstallig = eigen.filter((r) => r.status === "te_doen" && r.actieDatum < startMaand);
+  const teLaat = eigen.filter((r) => r.status === "te_doen" && r.actieDatum < startMaand);
+
+  const sync = await db.instelling.findUnique({ where: { key: "laatsteSyncNomeo" } });
+  const laatsteSync = sync
+    ? new Date(sync.value).toLocaleString("nl-BE", {
+        timeZone: "Europe/Brussels",
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   return (
     <div className="space-y-6">
       <PageHeader title="Facturatie-radar">
-        <SyncButton />
+        <SyncButton laatsteSync={laatsteSync} />
       </PageHeader>
+
+      <p className="text-sm text-neutral-500">
+        We factureren <strong className="font-medium text-neutral-700">45 dagen vóór de vervaldatum</strong> —
+        Nomeo rekent G-Bit daarvóór al aan. &ldquo;Factureren vóór&rdquo; is dus jouw deadline.
+      </p>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Kpi
           label="Deze maand te factureren"
           waarde={`€${som(dezeMaand).toFixed(0)}`}
-          sub={`${dezeMaand.length} posten`}
+          sub={`${dezeMaand.length} regels`}
         />
         <Kpi
-          label="Achterstallig"
-          waarde={`€${som(achterstallig).toFixed(0)}`}
-          sub={`${achterstallig.length} posten`}
-          tone={achterstallig.length ? "text-bad-text" : "text-charcoal"}
+          label="Te laat te factureren"
+          waarde={`€${som(teLaat).toFixed(0)}`}
+          sub={`${teLaat.length} regels — deadline verstreken`}
+          tone={teLaat.length ? "text-bad-text" : "text-charcoal"}
         />
         <Kpi
           label="Komende 90 dagen"
           waarde={`€${som(komende90).toFixed(0)}`}
-          sub={`${komende90.length} posten`}
+          sub={`${komende90.length} regels`}
         />
       </div>
 
-      {achterstallig.length > 0 && <PerKlant rijen={achterstallig} />}
-      {achterstallig.length > 0 && <Lijst titel="Achterstallig (detail)" rijen={achterstallig} />}
+      {teLaat.length > 0 && <PerKlant rijen={teLaat} />}
+      {teLaat.length > 0 && <Lijst titel="Te laat — alle regels" rijen={teLaat} inklapbaar />}
       <Lijst titel="Deze maand te factureren" rijen={dezeMaand} />
       <Lijst titel="Komende 90 dagen" rijen={komende90} />
 
-      <p className="text-xs text-neutral-400">
-        Bedragen excl. btw · factureren = 45 dagen vóór de vervaldatum (Nomeo rekent ons daarvóór al aan)
-      </p>
+      <p className="text-xs text-neutral-400">Bedragen excl. btw</p>
     </div>
   );
 }

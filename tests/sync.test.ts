@@ -16,6 +16,9 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn().mockResolvedValue({ naam: "example.be", klantId: "kbestaand" }),
       upsert: (a: unknown) => upsertDomein(a),
     },
+    instelling: {
+      upsert: vi.fn().mockResolvedValue({}),
+    },
   },
 }));
 
