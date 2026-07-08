@@ -65,6 +65,20 @@ export async function updateDomein(id: string, fd: FormData) {
   revalidatePath("/");
 }
 
+/**
+ * Neem één veld expliciet over in het CRM (vanaf de Controle-pagina).
+ * Bewust géén automatische overschrijving — de gebruiker beslist per veld.
+ * Er wordt nooit iets naar CoManage geschreven.
+ */
+export async function neemOverInCrm(klantId: string, veld: "vatNumber" | "adres", waarde: string) {
+  if (veld !== "vatNumber" && veld !== "adres") return;
+  if (!waarde.trim()) return;
+  await db.klant.update({ where: { id: klantId }, data: { [veld]: waarde.trim() } });
+  revalidatePath("/controle");
+  revalidatePath("/klanten");
+  revalidatePath(`/klanten/${klantId}`);
+}
+
 /** Verplaats een domein naar een andere klant; abonnement en hosting-site verhuizen mee. */
 export async function verplaatsDomein(id: string, klantId: string) {
   if (!klantId) return;

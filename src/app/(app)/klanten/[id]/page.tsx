@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { comanageActief, getContact } from "@/lib/comanage";
+import { normaliseerBtw } from "@/lib/vies";
 import { Badge } from "@/components/ui/Badge";
 import { Veld, veldKlasse, BewaarKnop } from "@/components/ui/form";
 import { updateKlant, addContact, deleteContact } from "@/lib/mutations";
@@ -134,7 +135,13 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
             </div>
             <div>
               <dt className="text-xs text-neutral-400">Btw-nummer</dt>
-              <dd className="tnum text-neutral-700">{co.vat_number ?? "—"}</dd>
+              <dd className="tnum flex flex-wrap items-center gap-1.5 text-neutral-700">
+                {co.vat_number ?? "—"}
+                {k.vatNumber &&
+                  normaliseerBtw(k.vatNumber) !== normaliseerBtw(co.vat_number) && (
+                    <Badge soort="warn">wijkt af van CRM — zie Controle</Badge>
+                  )}
+              </dd>
             </div>
             <div>
               <dt className="text-xs text-neutral-400">Facturatieadres</dt>
