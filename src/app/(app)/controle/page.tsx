@@ -140,8 +140,16 @@ export default async function Controle() {
       select: { id: true, naam: true, expireDate: true, klant: { select: { naam: true } } },
       orderBy: { expireDate: "asc" },
     }),
-    comanageActief() ? listContacts().catch(() => null) : Promise.resolve(null),
-    listClients().catch(() => null as NomeoClient[] | null),
+    comanageActief()
+      ? listContacts().catch((e) => {
+          console.error("Controle: CoManage onbereikbaar:", e);
+          return null;
+        })
+      : (console.error("Controle: COMANAGE_API_KEY ontbreekt in deze omgeving"), Promise.resolve(null)),
+    listClients().catch((e) => {
+      console.error("Controle: Nomeo onbereikbaar:", e);
+      return null as NomeoClient[] | null;
+    }),
     db.factuurMoment.findMany({
       where: { status: "te_doen" },
       select: { bedrag: true, abonnement: { select: { klantId: true, renewalDate: true } } },
