@@ -122,6 +122,11 @@ Let op: records heten `number` (niet `id`); `/contacts` bevat óók leveranciers
 facturen hebben `status` draft/pending/paid en `totals.total_ex_vat`.
 - Gekoppelde klanten tonen op hun detailpagina een **read-only paneel "Facturatiegegevens (CoManage)"**
   (naam, klantnummer, e-mail, telefoon, btw, facturatieadres — live via `getContact()`).
+- **Controle-pagina (`/controle`):** vergelijkt CRM ↔ CoManage (btw, adres) per gekoppelde klant en
+  valideert btw-nummers via **VIES** (`src/lib/vies.ts`, officiële EU-API, gestreamd via Suspense).
+  **Bewust geen auto-overwrite** (nog geen single source of truth): per verschil een expliciete
+  "Neem over in CRM"-knop (`neemOverInCrm`). "Niet btw-actief" is een warn, geen fout — vzw's/scholen
+  zijn vaak niet btw-plichtig. Klanten zonder btw krijgen KBO- en Peppol-directory-zoeklinks.
 - `prisma/comanage-check.ts` — verkenning + match-rapport (read-only).
 - `prisma/comanage-koppel.ts` — vult `Klant.comanageId` (btw-match → naam-tokens → handmatige mapping;
   bij dubbele CoManage-contacten wint het contact met de meeste facturen). Gedraaid op 2026-07-08:
