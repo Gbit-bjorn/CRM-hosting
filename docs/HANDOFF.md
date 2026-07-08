@@ -161,9 +161,12 @@ Tests: 5 (billing, nomeo, sync) — `npm test`.
 - **Bekende bronconflicten** (beslissing Bjorn nodig): Mertens Dylan (Nomeo-btw is oude eenmanszaak,
   CoManage heeft actieve BV) · EDU-TECH (CRM/Nomeo-btw is per abuis dat van G-Bit zélf!) ·
   Miniemeninstituut (instituut vs. scholenkoepel — welke entiteit factureren?).
-- **Vercel CLI is ingelogd** op deze machine; project gelinkt (`.vercel/`). `COMANAGE_API_KEY` is via
-  CLI aan **Production** toegevoegd op 2026-07-09. ⚠️ **Nog te verifiëren** dat de Controle-pagina in
-  productie na de redeploy effectief CoManage-data toont (banner "CoManage was niet bereikbaar" moet weg).
+- **Vercel CLI is ingelogd** op deze machine; project gelinkt (`.vercel/`). `COMANAGE_API_KEY` staat in
+  **Production** en is **geverifieerd werkend** (2026-07-09): de Controle-pagina toont live CoManage-data
+  (3 btw-conflicten, 19 aan te vullen). De eerste toevoeging via een PowerShell-pipe leverde een kapotte
+  waarde op → key opnieuw gezet via `printf '%s' | vercel env add` (Git Bash, geen trailing newline).
+  De `.catch`-blokken op de Controle-pagina loggen nu via `console.error` naar de Vercel function-logs
+  i.p.v. fouten stil in te slikken.
 
 ## 9. Refinement-backlog (volgende sessie)
 
