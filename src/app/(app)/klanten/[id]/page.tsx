@@ -5,6 +5,7 @@ import { comanageActief, getContact } from "@/lib/comanage";
 import { Badge } from "@/components/ui/Badge";
 import { Veld, veldKlasse, BewaarKnop } from "@/components/ui/form";
 import { updateKlant, addContact, deleteContact } from "@/lib/mutations";
+import VerplaatsKnop from "@/components/VerplaatsKnop";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +20,19 @@ function Paneel({ titel, children }: { titel: string; children: React.ReactNode 
 
 export default async function KlantDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const k = await db.klant.findUnique({
-    where: { id },
-    include: {
-      contacten: true,
-      sites: { orderBy: { naam: "asc" } },
-      beheerSites: { orderBy: { naam: "asc" }, include: { factuurKlant: true } },
-      domeinen: { orderBy: { naam: "asc" } },
-      abonnementen: true,
-    },
-  });
+  const [k, alleKlanten] = await Promise.all([
+    db.klant.findUnique({
+      where: { id },
+      include: {
+        contacten: true,
+        sites: { orderBy: { naam: "asc" } },
+        beheerSites: { orderBy: { naam: "asc" }, include: { factuurKlant: true } },
+        domeinen: { orderBy: { naam: "asc" } },
+        abonnementen: true,
+      },
+    }),
+    db.klant.findMany({ orderBy: { naam: "asc" }, select: { id: true, naam: true } }),
+  ]);
   if (!k) return <p className="text-sm text-neutral-500">Klant niet gevonden.</p>;
 
   // Facturatiegegevens live (alleen-lezen!) uit CoManage voor gekoppelde klanten.
@@ -180,13 +184,16 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
       <div className="grid gap-4 md:grid-cols-2">
         <Paneel titel={`Sites (${k.sites.length})`}>
           {k.sites.length ? (
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-1.5 text-sm">
               {k.sites.map((s) => (
-                <li key={s.id}>
+                <li key={s.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Link href={`/sites/${s.id}`} className="text-coral-hover hover:underline">
                     {s.naam}
                   </Link>
                   {s.hostingprijs != null ? <span className="tnum text-neutral-500"> · €{s.hostingprijs.toFixed(0)}/j</span> : ""}
+                  <span className="ml-auto">
+                    <VerplaatsKnop type="site" id={s.id} naam={s.naam} huidigeKlantId={k.id} klanten={alleKlanten} />
+                  </span>
                 </li>
               ))}
             </ul>
@@ -215,14 +222,17 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
 
         <Paneel titel={`Domeinen (${k.domeinen.length})`}>
           {k.domeinen.length ? (
-            <ul className="space-y-1 text-sm">
+            <ul className="space-y-1.5 text-sm">
               {k.domeinen.map((d) => (
-                <li key={d.id} className="tnum">
+                <li key={d.id} className="tnum flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Link href={`/domeinen/${d.id}`} className="text-coral-hover hover:underline">
                     {d.naam}
                   </Link>
                   {d.expireDate ? <span className="text-neutral-500"> · {d.expireDate.toISOString().slice(0, 10)}</span> : ""}
                   {!d.autoRenew ? <span className="text-bad-text"> · auto-renew uit</span> : ""}
+                  <span className="ml-auto">
+                    <VerplaatsKnop type="domein" id={d.id} naam={d.naam} huidigeKlantId={k.id} klanten={alleKlanten} />
+                  </span>
                 </li>
               ))}
             </ul>

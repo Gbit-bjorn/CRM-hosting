@@ -1,13 +1,12 @@
 "use client";
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowRightLeft, Check, List, Users, X } from "lucide-react";
+import { List, Users } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Badge } from "@/components/ui/Badge";
 import { StatusDot, type Tone } from "@/components/ui/StatusDot";
 import { tbl } from "@/components/ui/table";
-import { verplaatsDomein } from "@/lib/mutations";
+import VerplaatsKnop, { type KlantOptie } from "@/components/VerplaatsKnop";
 
 export type DomeinRij = {
   id: string;
@@ -18,8 +17,6 @@ export type DomeinRij = {
   autoRenew: boolean;
   heeftHosting: boolean;
 };
-
-export type KlantOptie = { id: string; naam: string };
 
 const filters = [
   { key: "alle", label: "Alle" },
@@ -43,66 +40,6 @@ function statusVan(d: DomeinRij): { tone: Tone; label: string } {
     return d.autoRenew ? { tone: "ok", label: "verlengt automatisch" } : { tone: "warn", label: "vervalt < 30d" };
   if (!d.autoRenew) return { tone: "warn", label: "auto-renew uit" };
   return { tone: "ok", label: "actief" };
-}
-
-/** Inline "verplaats naar andere klant"-actie; abonnement en site verhuizen mee. */
-function Verplaats({ domein, klanten }: { domein: DomeinRij; klanten: KlantOptie[] }) {
-  const [open, setOpen] = useState(false);
-  const [doel, setDoel] = useState("");
-  const [pending, start] = useTransition();
-  const router = useRouter();
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        aria-label={`Verplaats ${domein.naam} naar een andere klant`}
-        title="Verplaats naar andere klant"
-        className="rounded-md border border-neutral-200 p-1.5 text-neutral-500 transition hover:bg-neutral-50 hover:text-charcoal"
-      >
-        <ArrowRightLeft size={13} />
-      </button>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1">
-      <select
-        value={doel}
-        onChange={(e) => setDoel(e.target.value)}
-        className="max-w-44 rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-xs text-neutral-700 outline-none focus:border-neutral-300"
-      >
-        <option value="">— kies klant —</option>
-        {klanten
-          .filter((k) => k.id !== domein.klantId)
-          .map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.naam}
-            </option>
-          ))}
-      </select>
-      <button
-        disabled={!doel || pending}
-        onClick={() =>
-          start(async () => {
-            await verplaatsDomein(domein.id, doel);
-            setOpen(false);
-            router.refresh();
-          })
-        }
-        aria-label="Bevestig verplaatsen"
-        className="rounded-md bg-coral p-1.5 text-white transition hover:bg-coral-hover disabled:opacity-40"
-      >
-        <Check size={13} />
-      </button>
-      <button
-        onClick={() => setOpen(false)}
-        aria-label="Annuleer verplaatsen"
-        className="rounded-md border border-neutral-200 p-1.5 text-neutral-500 transition hover:bg-neutral-50"
-      >
-        <X size={13} />
-      </button>
-    </span>
-  );
 }
 
 export default function DomeinenView({
@@ -245,7 +182,7 @@ export default function DomeinenView({
                         </span>
                       )}
                       <span className="ml-auto">
-                        <Verplaats domein={d} klanten={klanten} />
+                        <VerplaatsKnop type="domein" id={d.id} naam={d.naam} huidigeKlantId={d.klantId} klanten={klanten} />
                       </span>
                     </li>
                   );
@@ -286,7 +223,7 @@ export default function DomeinenView({
                           vervalt {d.expireDate.slice(0, 10)}
                         </span>
                       )}
-                      <Verplaats domein={d} klanten={klanten} />
+                      <VerplaatsKnop type="domein" id={d.id} naam={d.naam} huidigeKlantId={d.klantId} klanten={klanten} />
                     </span>
                   </div>
                 </div>
@@ -328,7 +265,7 @@ export default function DomeinenView({
                           <StatusDot tone={s.tone}>{s.label}</StatusDot>
                         </td>
                         <td className={`${tbl.tdNum} relative z-10`}>
-                          <Verplaats domein={d} klanten={klanten} />
+                          <VerplaatsKnop type="domein" id={d.id} naam={d.naam} huidigeKlantId={d.klantId} klanten={klanten} />
                         </td>
                       </tr>
                     );
