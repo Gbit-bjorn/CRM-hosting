@@ -1,19 +1,25 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowRightLeft, Check, List, Users, X } from "lucide-react";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Badge } from "@/components/ui/Badge";
 import { StatusDot, type Tone } from "@/components/ui/StatusDot";
 import { tbl } from "@/components/ui/table";
+import { verplaatsDomein } from "@/lib/mutations";
 
 export type DomeinRij = {
   id: string;
   naam: string;
   klant: string;
+  klantId: string | null;
   expireDate: string | null;
   autoRenew: boolean;
   heeftHosting: boolean;
 };
+
+export type KlantOptie = { id: string; naam: string };
 
 const filters = [
   { key: "alle", label: "Alle" },
@@ -39,10 +45,77 @@ function statusVan(d: DomeinRij): { tone: Tone; label: string } {
   return { tone: "ok", label: "actief" };
 }
 
-export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
+/** Inline "verplaats naar andere klant"-actie; abonnement en site verhuizen mee. */
+function Verplaats({ domein, klanten }: { domein: DomeinRij; klanten: KlantOptie[] }) {
+  const [open, setOpen] = useState(false);
+  const [doel, setDoel] = useState("");
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        aria-label={`Verplaats ${domein.naam} naar een andere klant`}
+        title="Verplaats naar andere klant"
+        className="rounded-md border border-neutral-200 p-1.5 text-neutral-500 transition hover:bg-neutral-50 hover:text-charcoal"
+      >
+        <ArrowRightLeft size={13} />
+      </button>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1">
+      <select
+        value={doel}
+        onChange={(e) => setDoel(e.target.value)}
+        className="max-w-44 rounded-md border border-neutral-200 bg-white px-1.5 py-1 text-xs text-neutral-700 outline-none focus:border-neutral-300"
+      >
+        <option value="">— kies klant —</option>
+        {klanten
+          .filter((k) => k.id !== domein.klantId)
+          .map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.naam}
+            </option>
+          ))}
+      </select>
+      <button
+        disabled={!doel || pending}
+        onClick={() =>
+          start(async () => {
+            await verplaatsDomein(domein.id, doel);
+            setOpen(false);
+            router.refresh();
+          })
+        }
+        aria-label="Bevestig verplaatsen"
+        className="rounded-md bg-coral p-1.5 text-white transition hover:bg-coral-hover disabled:opacity-40"
+      >
+        <Check size={13} />
+      </button>
+      <button
+        onClick={() => setOpen(false)}
+        aria-label="Annuleer verplaatsen"
+        className="rounded-md border border-neutral-200 p-1.5 text-neutral-500 transition hover:bg-neutral-50"
+      >
+        <X size={13} />
+      </button>
+    </span>
+  );
+}
+
+export default function DomeinenView({
+  domeinen,
+  klanten,
+}: {
+  domeinen: DomeinRij[];
+  klanten: KlantOptie[];
+}) {
   const [zoek, setZoek] = useState("");
   const [filter, setFilter] = useState("alle");
   const [sort, setSort] = useState("vervalt");
+  const [view, setView] = useState<"lijst" | "klant">("lijst");
 
   const rijen = useMemo(() => {
     const q = zoek.toLowerCase();
@@ -64,6 +137,22 @@ export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
     });
   }, [domeinen, zoek, filter, sort]);
 
+  const perKlant = useMemo(() => {
+    const groepen = new Map<string, DomeinRij[]>();
+    for (const d of rijen) {
+      const lijst = groepen.get(d.klant) ?? [];
+      lijst.push(d);
+      groepen.set(d.klant, lijst);
+    }
+    return [...groepen.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([klant, ds]) => ({
+        klant,
+        klantId: ds[0].klantId,
+        domeinen: [...ds].sort((a, b) => a.naam.localeCompare(b.naam)),
+      }));
+  }, [rijen]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -83,87 +172,175 @@ export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
             </button>
           ))}
         </div>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="ml-auto rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-700 outline-none focus:border-neutral-300"
-        >
-          {sorts.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="space-y-2 md:hidden">
-        {rijen.map((d) => {
-          const s = statusVan(d);
-          return (
-            <Link
-              key={d.id}
-              href={`/domeinen/${d.id}`}
-              className="block rounded-lg border border-neutral-200 bg-white p-3"
+        <div className="ml-auto flex items-center gap-2">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-700 outline-none focus:border-neutral-300"
+          >
+            {sorts.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex overflow-hidden rounded-md border border-neutral-200">
+            <button
+              onClick={() => setView("lijst")}
+              aria-label="Lijstweergave"
+              title="Lijst"
+              className={`p-1.5 ${view === "lijst" ? "bg-neutral-100 text-charcoal" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}
             >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-neutral-800">{d.naam}</p>
-                <Badge soort={d.heeftHosting ? "hosting" : "domein"}>
-                  {d.heeftHosting ? "Hosting" : "Domein"}
-                </Badge>
-              </div>
-              <p className="mt-0.5 text-xs text-neutral-500">{d.klant}</p>
-              <div className="mt-1.5 flex items-center justify-between gap-3">
-                <StatusDot tone={s.tone}>{s.label}</StatusDot>
-                {d.expireDate && (
-                  <p className="tnum text-xs text-neutral-500">vervalt {d.expireDate.slice(0, 10)}</p>
-                )}
-              </div>
-            </Link>
-          );
-        })}
+              <List size={16} />
+            </button>
+            <button
+              onClick={() => setView("klant")}
+              aria-label="Gegroepeerd per klant"
+              title="Per klant"
+              className={`border-l border-neutral-200 p-1.5 ${view === "klant" ? "bg-neutral-100 text-charcoal" : "bg-white text-neutral-500 hover:bg-neutral-50"}`}
+            >
+              <Users size={16} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className={`${tbl.wrap} hidden md:block`}>
-        <div className={tbl.scroll}>
-          <table className={tbl.table}>
-            <thead>
-              <tr>
-                <th className={tbl.th}>Domein</th>
-                <th className={tbl.th}>Klant</th>
-                <th className={tbl.th}>Type</th>
-                <th className={tbl.thNum}>Vervalt</th>
-                <th className={tbl.th}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rijen.map((d) => {
-                const s = statusVan(d);
-                return (
-                  <tr key={d.id} className={tbl.tr}>
-                    <td className={tbl.tdName}>
-                      <Link href={`/domeinen/${d.id}`} className={tbl.rowLink}>
+      {view === "klant" ? (
+        <div className="space-y-3">
+          {perKlant.map((g) => (
+            <section key={g.klant} className="rounded-lg border border-neutral-200 bg-white">
+              <div className="flex items-center justify-between gap-3 border-b border-neutral-100 px-3 py-2">
+                {g.klantId ? (
+                  <Link
+                    href={`/klanten/${g.klantId}`}
+                    className="text-sm font-semibold text-neutral-800 hover:text-coral-hover hover:underline"
+                  >
+                    {g.klant}
+                  </Link>
+                ) : (
+                  <span className="text-sm font-semibold text-neutral-800">{g.klant}</span>
+                )}
+                <span className="tnum text-xs text-neutral-400">
+                  {g.domeinen.length} domein{g.domeinen.length === 1 ? "" : "en"}
+                </span>
+              </div>
+              <ul className="divide-y divide-neutral-100">
+                {g.domeinen.map((d) => {
+                  const s = statusVan(d);
+                  return (
+                    <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2">
+                      <Link
+                        href={`/domeinen/${d.id}`}
+                        className="text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline"
+                      >
                         {d.naam}
                       </Link>
-                    </td>
-                    <td className={tbl.td}>{d.klant}</td>
-                    <td className={tbl.td}>
                       <Badge soort={d.heeftHosting ? "hosting" : "domein"}>
                         {d.heeftHosting ? "Hosting" : "Domein"}
                       </Badge>
-                    </td>
-                    <td className={tbl.tdNum}>{d.expireDate ? d.expireDate.slice(0, 10) : "—"}</td>
-                    <td className={tbl.td}>
                       <StatusDot tone={s.tone}>{s.label}</StatusDot>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {d.expireDate && (
+                        <span className="tnum text-xs text-neutral-500">
+                          vervalt {d.expireDate.slice(0, 10)}
+                        </span>
+                      )}
+                      <span className="ml-auto">
+                        <Verplaats domein={d} klanten={klanten} />
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+          {perKlant.length === 0 && (
+            <p className="rounded-lg border border-neutral-200 bg-white p-4 text-center text-sm text-neutral-400">
+              Geen domeinen gevonden.
+            </p>
+          )}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="space-y-2 md:hidden">
+            {rijen.map((d) => {
+              const s = statusVan(d);
+              return (
+                <div key={d.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Link
+                      href={`/domeinen/${d.id}`}
+                      className="text-sm font-medium text-neutral-800 hover:text-coral-hover"
+                    >
+                      {d.naam}
+                    </Link>
+                    <Badge soort={d.heeftHosting ? "hosting" : "domein"}>
+                      {d.heeftHosting ? "Hosting" : "Domein"}
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-neutral-500">{d.klant}</p>
+                  <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                    <StatusDot tone={s.tone}>{s.label}</StatusDot>
+                    <span className="inline-flex items-center gap-2">
+                      {d.expireDate && (
+                        <span className="tnum text-xs text-neutral-500">
+                          vervalt {d.expireDate.slice(0, 10)}
+                        </span>
+                      )}
+                      <Verplaats domein={d} klanten={klanten} />
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className={`${tbl.wrap} hidden md:block`}>
+            <div className={tbl.scroll}>
+              <table className={tbl.table}>
+                <thead>
+                  <tr>
+                    <th className={tbl.th}>Domein</th>
+                    <th className={tbl.th}>Klant</th>
+                    <th className={tbl.th}>Type</th>
+                    <th className={tbl.thNum}>Vervalt</th>
+                    <th className={tbl.th}>Status</th>
+                    <th className={tbl.thNum}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rijen.map((d) => {
+                    const s = statusVan(d);
+                    return (
+                      <tr key={d.id} className={tbl.tr}>
+                        <td className={tbl.tdName}>
+                          <Link href={`/domeinen/${d.id}`} className={tbl.rowLink}>
+                            {d.naam}
+                          </Link>
+                        </td>
+                        <td className={tbl.td}>{d.klant}</td>
+                        <td className={tbl.td}>
+                          <Badge soort={d.heeftHosting ? "hosting" : "domein"}>
+                            {d.heeftHosting ? "Hosting" : "Domein"}
+                          </Badge>
+                        </td>
+                        <td className={tbl.tdNum}>{d.expireDate ? d.expireDate.slice(0, 10) : "—"}</td>
+                        <td className={tbl.td}>
+                          <StatusDot tone={s.tone}>{s.label}</StatusDot>
+                        </td>
+                        <td className={`${tbl.tdNum} relative z-10`}>
+                          <Verplaats domein={d} klanten={klanten} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
       <p className="text-xs text-neutral-400">
-        {rijen.length} van {domeinen.length} domeinen
+        {rijen.length} van {domeinen.length} domeinen · verplaatsen neemt abonnement en hosting-site mee
       </p>
     </div>
   );

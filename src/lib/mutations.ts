@@ -65,6 +65,18 @@ export async function updateDomein(id: string, fd: FormData) {
   revalidatePath("/");
 }
 
+/** Verplaats een domein naar een andere klant; abonnement en hosting-site verhuizen mee. */
+export async function verplaatsDomein(id: string, klantId: string) {
+  if (!klantId) return;
+  const d = await db.domein.update({ where: { id }, data: { klantId } });
+  await db.abonnement.updateMany({ where: { omschrijving: d.naam }, data: { klantId } });
+  await db.site.updateMany({ where: { naam: d.naam }, data: { factuurKlantId: klantId } });
+  revalidatePath("/domeinen");
+  revalidatePath("/klanten");
+  revalidatePath("/sites");
+  revalidatePath("/");
+}
+
 export async function updateSite(id: string, fd: FormData) {
   const factuurKlantId = tekst(fd, "factuurKlantId");
   const s = await db.site.update({

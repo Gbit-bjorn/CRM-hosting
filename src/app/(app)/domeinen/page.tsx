@@ -5,9 +5,10 @@ import DomeinenView, { type DomeinRij } from "@/components/DomeinenView";
 export const dynamic = "force-dynamic";
 
 export default async function Domeinen() {
-  const [domeinen, sites] = await Promise.all([
+  const [domeinen, sites, klanten] = await Promise.all([
     db.domein.findMany({ include: { klant: true }, orderBy: { expireDate: "asc" } }),
     db.site.findMany({ select: { naam: true } }),
+    db.klant.findMany({ orderBy: { naam: "asc" }, select: { id: true, naam: true } }),
   ]);
   const hostingSet = new Set(sites.map((s) => s.naam));
 
@@ -15,6 +16,7 @@ export default async function Domeinen() {
     id: d.id,
     naam: d.naam,
     klant: d.klant?.naam ?? "—",
+    klantId: d.klant?.id ?? null,
     expireDate: d.expireDate ? d.expireDate.toISOString() : null,
     autoRenew: d.autoRenew,
     heeftHosting: hostingSet.has(d.naam),
@@ -23,7 +25,7 @@ export default async function Domeinen() {
   return (
     <div>
       <PageHeader title="Domeinen" count={domeinen.length} />
-      <DomeinenView domeinen={rijen} />
+      <DomeinenView domeinen={rijen} klanten={klanten} />
     </div>
   );
 }
