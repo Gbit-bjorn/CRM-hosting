@@ -130,7 +130,7 @@ export default function KlantenView({ klanten }: { klanten: Kaart[] }) {
                 {rijen.map((k) => (
                   <tr key={k.id} className={tbl.tr}>
                     <td className={tbl.tdName}>
-                      <Link href={`/klanten/${k.id}`} className="hover:text-coral-hover hover:underline">
+                      <Link href={`/klanten/${k.id}`} className={tbl.rowLink}>
                         {k.naam}
                       </Link>
                     </td>

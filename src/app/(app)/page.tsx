@@ -50,13 +50,50 @@ function registratieBlokkeert(status: string) {
   return status === "vereist" || status === "aangevraagd";
 }
 
+function Kaartjes({ rijen }: { rijen: Rij[] }) {
+  return (
+    <div className="space-y-2 md:hidden">
+      {rijen.length === 0 && (
+        <p className="rounded-lg border border-neutral-200 bg-white p-4 text-center text-sm text-neutral-400">
+          Niets te factureren in deze periode.
+        </p>
+      )}
+      {rijen.map((r) => (
+        <div key={r.id} className="rounded-lg border border-neutral-200 bg-white p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-neutral-800">{r.klant}</p>
+              <p className="text-sm text-neutral-600">{r.betreft}</p>
+              {r.detail && <p className="mt-0.5 text-xs text-neutral-400">{r.detail}</p>}
+            </div>
+            <p className="tnum shrink-0 text-sm font-semibold text-charcoal">€{r.bedrag.toFixed(2)}</p>
+          </div>
+          {registratieBlokkeert(r.leverancierStatus) && (
+            <div className="mt-2">
+              <Badge soort="warn">eerst leveranciersregistratie</Badge>
+            </div>
+          )}
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-2">
+            <p className="tnum text-xs text-neutral-500">
+              factureren voor {r.actieDatum.toISOString().slice(0, 10)} · vervalt{" "}
+              {r.renewalDate.toISOString().slice(0, 10)}
+            </p>
+            <FactuurKnop id={r.id} status={r.status} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Lijst({ titel, rijen }: { titel: string; rijen: Rij[] }) {
   return (
     <section>
       <h2 className="mb-2 text-sm font-semibold text-neutral-700">
         {titel} <span className="tnum text-neutral-400">({rijen.length})</span>
       </h2>
-      <div className={tbl.wrap}>
+      <Kaartjes rijen={rijen} />
+      <div className={`${tbl.wrap} hidden md:block`}>
         <table className={tbl.table}>
           <thead>
             <tr>
@@ -143,14 +180,14 @@ function PerKlant({ rijen }: { rijen: Rij[] }) {
           <tbody>
             {samengevat.map((g) => (
               <tr key={g.klantId} className={tbl.tr}>
-                <td className={tbl.tdName}>
-                  <Link href={`/klanten/${g.klantId}`} className="hover:text-coral-hover hover:underline">
+                <td className={`${tbl.tdName} whitespace-normal`}>
+                  <Link href={`/klanten/${g.klantId}`} className={tbl.rowLink}>
                     {g.klant}
                   </Link>
                 </td>
                 <td className={tbl.tdNum}>{g.posten}</td>
                 <td className={tbl.tdNum}>€{g.totaal.toFixed(2)}</td>
-                <td className={tbl.td}>
+                <td className={`${tbl.td} whitespace-normal`}>
                   {registratieBlokkeert(g.leverancierStatus) && (
                     <Badge soort="warn">
                       leveranciersregistratie {g.leverancierStatus === "vereist" ? "nog aan te vragen" : "aangevraagd"}

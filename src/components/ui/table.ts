@@ -8,7 +8,9 @@ export const tbl = {
   th: "sticky top-0 z-10 whitespace-nowrap border-b border-neutral-200 bg-neutral-50 px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-neutral-500",
   thNum:
     "sticky top-0 z-10 whitespace-nowrap border-b border-neutral-200 bg-neutral-50 px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wide text-neutral-500",
-  tr: "border-b border-neutral-100 last:border-0 hover:bg-neutral-50",
+  tr: "relative border-b border-neutral-100 last:border-0 hover:bg-neutral-50",
+  // Link in een cel die de volledige rij klikbaar maakt (tr is relative).
+  rowLink: "hover:text-coral-hover hover:underline after:absolute after:inset-0",
   td: "whitespace-nowrap px-3 py-2.5 align-middle text-neutral-700",
   tdNum: "tnum whitespace-nowrap px-3 py-2.5 align-middle text-right text-neutral-700",
   tdName: "whitespace-nowrap px-3 py-2.5 align-middle font-medium text-neutral-800",

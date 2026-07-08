@@ -29,7 +29,7 @@ export default async function Sites() {
               {sites.map((s) => (
                 <tr key={s.id} className={tbl.tr}>
                   <td className={tbl.tdName}>
-                    <Link href={`/sites/${s.id}`} className="hover:text-coral-hover hover:underline">
+                    <Link href={`/sites/${s.id}`} className={tbl.rowLink}>
                       {s.naam}
                     </Link>
                   </td>

@@ -110,7 +110,7 @@ export default function DomeinenView({ domeinen }: { domeinen: DomeinRij[] }) {
                 return (
                   <tr key={d.id} className={tbl.tr}>
                     <td className={tbl.tdName}>
-                      <Link href={`/domeinen/${d.id}`} className="hover:text-coral-hover hover:underline">
+                      <Link href={`/domeinen/${d.id}`} className={tbl.rowLink}>
                         {d.naam}
                       </Link>
                     </td>
