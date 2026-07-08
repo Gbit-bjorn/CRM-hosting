@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { comanageActief, getContact } from "@/lib/comanage";
-import { normaliseerBtw } from "@/lib/vies";
+import { listClients } from "@/lib/nomeo";
+import BronVergelijking from "@/components/BronVergelijking";
 import { Badge } from "@/components/ui/Badge";
 import { Veld, veldKlasse, BewaarKnop } from "@/components/ui/form";
 import { updateKlant, addContact, deleteContact } from "@/lib/mutations";
@@ -36,10 +37,17 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
   ]);
   if (!k) return <p className="text-sm text-neutral-500">Klant niet gevonden.</p>;
 
-  // Facturatiegegevens live (alleen-lezen!) uit CoManage voor gekoppelde klanten.
-  const co =
-    k.comanageId && comanageActief() ? await getContact(k.comanageId).catch(() => null) : null;
-  const coAdres = co?.addresses?.find((a) => a.type === "billing");
+  // Gegevens live (alleen-lezen!) uit CoManage en Nomeo voor de bronvergelijking.
+  const [co, nomeoKlant] = await Promise.all([
+    k.comanageId && comanageActief()
+      ? getContact(k.comanageId).catch(() => null)
+      : Promise.resolve(null),
+    k.nomeoId
+      ? listClients()
+          .then((cs) => cs.find((c) => c.id === k.nomeoId) ?? null)
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   const jaartotaal = k.abonnementen.reduce((s, a) => s + a.jaarbedrag, 0);
   const profiel = k.sites.length > 0 ? "hosting" : k.domeinen.length > 0 ? "domein-only" : "leeg";
@@ -98,64 +106,12 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
         <BewaarKnop />
       </form>
 
-      {co && (
-        <Paneel titel="Facturatiegegevens (CoManage)">
-          <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs text-neutral-400">Naam in boekhouding</dt>
-              <dd className="text-neutral-700">{co.name ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-neutral-400">Klantnummer</dt>
-              <dd className="tnum text-neutral-700">{co.customer_number ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-neutral-400">E-mail</dt>
-              <dd className="text-neutral-700">
-                {co.email ? (
-                  <a href={`mailto:${co.email}`} className="text-coral-hover hover:underline">
-                    {co.email}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-neutral-400">Telefoon</dt>
-              <dd className="tnum text-neutral-700">
-                {co.phone ? (
-                  <a href={`tel:${co.phone}`} className="text-coral-hover hover:underline">
-                    {co.phone}
-                  </a>
-                ) : (
-                  "—"
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-neutral-400">Btw-nummer</dt>
-              <dd className="tnum flex flex-wrap items-center gap-1.5 text-neutral-700">
-                {co.vat_number ?? "—"}
-                {k.vatNumber &&
-                  normaliseerBtw(k.vatNumber) !== normaliseerBtw(co.vat_number) && (
-                    <Badge soort="warn">wijkt af van CRM — zie Controle</Badge>
-                  )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-neutral-400">Facturatieadres</dt>
-              <dd className="text-neutral-700">
-                {coAdres?.address_line_1
-                  ? `${coAdres.address_line_1}, ${coAdres.postcode ?? ""} ${coAdres.city ?? ""}`.trim()
-                  : "—"}
-              </dd>
-            </div>
-          </dl>
-          <p className="mt-3 text-xs text-neutral-400">
-            Live uit CoManage (alleen-lezen) — aanpassen doe je in CoManage zelf.
-          </p>
-        </Paneel>
+      {(co || nomeoKlant) && (
+        <BronVergelijking
+          klant={{ id: k.id, naam: k.naam, vatNumber: k.vatNumber, adres: k.adres }}
+          nomeo={nomeoKlant}
+          comanage={co}
+        />
       )}
 
       <Paneel titel={`Contacten (${k.contacten.length})`}>
