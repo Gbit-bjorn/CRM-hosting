@@ -40,11 +40,11 @@ data/                     # plesk-domains.json e.a. (git-ignored) — bron voor 
 
 ## 3. Datamodel
 
-`Klant` (naam, type direct/reseller/intern, vatNumber, adres, notities, comanageId?, nomeoId?) ·
-`Contact` (→ Klant) · `Site` (naam, pleskStatus, verbruikMB, hostingprijs, **factuurKlant**, **eindKlant?**) ·
+`Klant` (naam, type direct/reseller/intern, vatNumber, adres, notities, **leverancierStatus** nvt/vereist/aangevraagd/geregistreerd, comanageId?, nomeoId?) ·
+`Contact` (→ Klant) · `Site` (naam, pleskStatus, verbruikMB, hostingprijs, **factuurKlant**, **eindKlant?**, **beheerKlant?** = wie beheert als dat niet de factuurklant is, bv. Bianca beheer-only) ·
 `Domein` (naam, tld, expireDate, registrationDate, autoRenew, status, inkoopPrijs, verkoopPrijs, nomeoId?, klant?, site?) ·
 `Abonnement` (jaarbedrag, renewalDate, omschrijving = domeinnaam, → Klant) ·
-`FactuurMoment` (actieDatum = renewalDate − 1 maand, bedrag, status te_doen/gefactureerd/betaald, → Abonnement).
+`FactuurMoment` (actieDatum = renewalDate − 45 dagen, bedrag, status te_doen/gefactureerd/betaald, → Abonnement).
 
 **Provenance:** velden uit Nomeo (expireDate, autoRenew, status, inkoopPrijs, nomeoId) worden door de sync ge-upsert;
 **eigen velden** (notities, verkoopPrijs, hostingprijs, factuurstatus, klant-toewijzingen) blijven onaangeroerd.
@@ -72,17 +72,29 @@ kop-commentaar / de conversie in de git-historie). Bronbestanden: `C:\Hosting\co
 
 ## 5. Bedrijfsregels
 
-- **Facturatie start feb 2026** (`FACTURATIE_START` in `src/lib/billing.ts`). Facturatiemomenten met actieDatum
-  daarvóór waren voor **edu-tech** → uit de radar gefilterd. (Jaartal desnoods aanpassen als het verschuift.)
+- **Factureren 45 dagen (1,5 maand) vóór de vervaldatum** (`actieDatum`/`LEAD_DAGEN` in `src/lib/billing.ts`):
+  Nomeo rekent G-Bit daarvóór al aan, dus onze factuur moet eerst buiten zijn. Eenmalige herberekening van
+  bestaande momenten: `npx tsx prisma/herbereken-actiedatums.ts` (idempotent).
+- **Facturatie start feb 2026**. Verlengingen met renewalDate vóór **maart 2026** waren voor **edu-tech** →
+  uit de radar gefilterd via `isEigenFacturatie()` (bewust op renewalDate, niet actieDatum, zodat de grens
+  niet mee verschuift met de lead-time).
 - **Tarieven, allemaal EXCL. btw** (`src/lib/pricing.ts`): hosting €90 (standaard) / €72 (reseller, −20%);
   domein .be/.nl/.eu €15, .com €19. Afgeleid uit `C:\Hosting\communicatie\mail-bianca-prijsafspraak.md` +
   Nomeo-retailprijzen. Later per site/domein bewerkbaar in de app.
+- **Gemeente-/overheidsklanten:** daar moet G-Bit eerst als **leverancier geregistreerd** worden vóór er
+  gefactureerd kan worden. Per klant bij te houden via `Klant.leverancierStatus` (nvt/vereist/aangevraagd/
+  geregistreerd, bewerkbaar op de klantpagina); de radar toont een amber waarschuwing bij vereist/aangevraagd.
+- **Bianca reselled niet alles:** voor sommige sites doet ze **enkel het beheer** — dan is de eindklant zelf de
+  factuurklant (€90 i.p.v. reseller-tarief) en zet je Bianca als `Site.beheerKlant` (bewerkbaar op de
+  sitepagina; zichtbaar als "Sites in beheer" op haar klantpagina). Welke sites dat zijn: door Bjorn per site
+  in te stellen.
 - **Reseller:** enkel **Bianca Schoonjans (vabiz)**. Jij factureert aan haar; zij verrekent met haar eindklanten.
   Zij heeft nu 10 domeinen: 7 hosting (academiedevonk, bartspanhove, phinicka, rvenergy, tophatevents, tuineneron,
   vabiz) + 3 domein-only (`magischminitheaterabra.be`, `nicktails.be`, `saltandsweetbakery.be`) die via naam-matching
   bij haar zijn gekomen — **te verifiëren of die 3 echt van haar zijn**.
-- **Facturatie-radar:** KPI's (deze maand / achterstallig / komende 90 dagen) + lijsten; "markeer gefactureerd"
-  zet de status. actieDatum = renewalDate − 1 maand.
+- **Facturatie-radar:** KPI's (deze maand / achterstallig / komende 90 dagen) + lijsten (met vervaldatum);
+  "markeer gefactureerd" zet de status. Extra: **"Achterstallig per klant"** groepeert alle openstaande posten
+  sinds februari per klant (één factuur per klant). actieDatum = renewalDate − 45 dagen.
 
 ## 6. Nomeo-API
 

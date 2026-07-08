@@ -39,6 +39,11 @@ export default async function SiteDetail({ params }: { params: Promise<{ id: str
             <KlantOpties klanten={klanten} leegLabel="— geen eindklant —" />
           </select>
         </Veld>
+        <Veld label="Beheerd door (optioneel — bv. Bianca doet enkel beheer, factuur gaat naar eindklant)">
+          <select name="beheerKlantId" defaultValue={s.beheerKlantId ?? ""} className={veldKlasse}>
+            <KlantOpties klanten={klanten} leegLabel="— zelfde als factuurklant —" />
+          </select>
+        </Veld>
         <Veld label="Hostingprijs / jaar (excl. btw)">
           <input
             name="hostingprijs"

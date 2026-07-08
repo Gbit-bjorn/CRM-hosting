@@ -23,6 +23,7 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
     include: {
       contacten: true,
       sites: { orderBy: { naam: "asc" } },
+      beheerSites: { orderBy: { naam: "asc" }, include: { factuurKlant: true } },
       domeinen: { orderBy: { naam: "asc" } },
       abonnementen: true,
     },
@@ -43,6 +44,9 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
           {k.type === "reseller" && <Badge soort="reseller">Reseller</Badge>}
           {profiel === "hosting" && <Badge soort="hosting">Hosting</Badge>}
           {profiel === "domein-only" && <Badge soort="domein">Domein-only</Badge>}
+          {k.leverancierStatus === "vereist" && <Badge soort="warn">Leveranciersregistratie vereist</Badge>}
+          {k.leverancierStatus === "aangevraagd" && <Badge soort="warn">Leveranciersregistratie aangevraagd</Badge>}
+          {k.leverancierStatus === "geregistreerd" && <Badge soort="ok">Leverancier geregistreerd</Badge>}
         </div>
         <p className="tnum mt-1 text-sm text-neutral-500">
           {k.sites.length} site(s) · {k.domeinen.length} domein(en) · €{jaartotaal.toFixed(0)}/jaar excl. btw
@@ -67,6 +71,14 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
           </Veld>
           <Veld label="Adres">
             <input name="adres" defaultValue={k.adres ?? ""} className={veldKlasse} />
+          </Veld>
+          <Veld label="Leveranciersregistratie (bij gemeentes/overheden)">
+            <select name="leverancierStatus" defaultValue={k.leverancierStatus} className={veldKlasse}>
+              <option value="nvt">Niet van toepassing</option>
+              <option value="vereist">Vereist — nog aan te vragen</option>
+              <option value="aangevraagd">Aangevraagd — wachten op goedkeuring</option>
+              <option value="geregistreerd">Geregistreerd — factureren kan</option>
+            </select>
           </Veld>
         </div>
         <Veld label="Notities">
@@ -122,6 +134,24 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
             <p className="text-sm text-neutral-400">Geen hosting-sites.</p>
           )}
         </Paneel>
+
+        {k.beheerSites.length > 0 && (
+          <Paneel titel={`Sites in beheer (${k.beheerSites.length})`}>
+            <p className="mb-2 text-xs text-neutral-500">
+              Deze klant doet enkel het beheer; de factuur gaat naar de vermelde factuurklant.
+            </p>
+            <ul className="space-y-1 text-sm">
+              {k.beheerSites.map((s) => (
+                <li key={s.id}>
+                  <Link href={`/sites/${s.id}`} className="text-coral-hover hover:underline">
+                    {s.naam}
+                  </Link>
+                  <span className="text-neutral-500"> · factuur → {s.factuurKlant.naam}</span>
+                </li>
+              ))}
+            </ul>
+          </Paneel>
+        )}
 
         <Paneel titel={`Domeinen (${k.domeinen.length})`}>
           {k.domeinen.length ? (

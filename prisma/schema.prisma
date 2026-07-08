@@ -19,21 +19,32 @@ enum FactuurStatus {
   betaald
 }
 
+// Voor klanten bij overheden/gemeentes: G-Bit moet daar eerst als
+// leverancier geregistreerd zijn vóór er gefactureerd kan worden.
+enum LeverancierStatus {
+  nvt
+  vereist
+  aangevraagd
+  geregistreerd
+}
+
 model Klant {
-  id             String       @id @default(cuid())
-  naam           String       @unique
-  type           KlantType    @default(direct)
-  vatNumber      String?
-  adres          String?
-  stad           String?
-  postcode       String?
-  land           String?      @default("Belgium")
-  notities       String?
-  comanageId     String?
-  nomeoId        String?      @unique
-  contacten      Contact[]
-  sites          Site[]       @relation("FactuurKlant")
-  eindklantSites Site[]       @relation("EindKlant")
+  id                String            @id @default(cuid())
+  naam              String            @unique
+  type              KlantType         @default(direct)
+  vatNumber         String?
+  adres             String?
+  stad              String?
+  postcode          String?
+  land              String?           @default("Belgium")
+  notities          String?
+  leverancierStatus LeverancierStatus @default(nvt)
+  comanageId        String?
+  nomeoId           String?           @unique
+  contacten         Contact[]
+  sites             Site[]            @relation("FactuurKlant")
+  eindklantSites    Site[]            @relation("EindKlant")
+  beheerSites       Site[]            @relation("BeheerKlant")
   domeinen       Domein[]
   abonnementen   Abonnement[]
   createdAt      DateTime     @default(now())
@@ -60,6 +71,10 @@ model Site {
   factuurKlantId String
   eindKlant      Klant?   @relation("EindKlant", fields: [eindKlantId], references: [id])
   eindKlantId    String?
+  // Wie het beheer doet als dat niet de factuurklant is (bv. Bianca die enkel
+  // beheert: factuur gaat rechtstreeks naar de eindklant, zij beheert).
+  beheerKlant    Klant?   @relation("BeheerKlant", fields: [beheerKlantId], references: [id])
+  beheerKlantId  String?
   domeinen       Domein[]
 }
 

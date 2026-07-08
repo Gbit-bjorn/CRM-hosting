@@ -33,9 +33,11 @@ Modellen: `Klant, Contact, Site, Domein, Abonnement, FactuurMoment` (zie `prisma
   Volledige herbouw = alles wissen + die 3 opnieuw (zie HANDOFF).
 
 ## Bedrijfsregels
-- **Facturatie pas vanaf feb 2026** (`FACTURATIE_START` in `src/lib/billing.ts`); alles daarvoor was voor edu-tech → verborgen op de radar.
+- **Factureren 45 dagen (1,5 maand) vóór de vervaldatum** (`actieDatum` in `src/lib/billing.ts`) — Nomeo rekent G-Bit daarvóór al aan.
+- **Facturatie pas vanaf feb 2026**; verlengingen vóór maart 2026 waren voor edu-tech → verborgen op de radar (`isEigenFacturatie`).
 - **Tarieven (excl. btw):** hosting €90 standaard / €72 reseller · domein .be/.nl/.eu €15, .com €19 (`src/lib/pricing.ts`).
-- **Bianca Schoonjans (vabiz)** = enige reseller. Haar 7 hosting-domeinen + 3 domein-only (`magischminitheaterabra.be`, `nicktails.be`, `saltandsweetbakery.be` — **nog te verifiëren of echt van haar**).
+- **Bianca Schoonjans (vabiz)** = enige reseller, maar **niet alles reselled ze**: soms doet ze enkel beheer → dan is de eindklant de factuurklant en staat Bianca als `Site.beheerKlant`. Haar 7 hosting-domeinen + 3 domein-only (`magischminitheaterabra.be`, `nicktails.be`, `saltandsweetbakery.be` — **nog te verifiëren of echt van haar**).
+- **Gemeente-/overheidsklanten:** eerst leveranciersregistratie vóór facturatie → `Klant.leverancierStatus` (nvt/vereist/aangevraagd/geregistreerd); radar waarschuwt bij vereist/aangevraagd.
 - Een domein/site **verplaatsen** neemt domein + hosting-site + abonnement samen mee (zie `src/lib/mutations.ts`).
 
 ## Commando's (in `hosting-crm/`)

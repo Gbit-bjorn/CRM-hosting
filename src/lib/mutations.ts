@@ -23,6 +23,11 @@ export async function updateKlant(id: string, fd: FormData) {
       vatNumber: tekst(fd, "vatNumber"),
       adres: tekst(fd, "adres"),
       notities: tekst(fd, "notities"),
+      leverancierStatus: (tekst(fd, "leverancierStatus") ?? "nvt") as
+        | "nvt"
+        | "vereist"
+        | "aangevraagd"
+        | "geregistreerd",
     },
   });
   revalidatePath(`/klanten/${id}`);
@@ -68,6 +73,7 @@ export async function updateSite(id: string, fd: FormData) {
       hostingprijs: getal(fd, "hostingprijs"),
       factuurKlantId: factuurKlantId ?? undefined,
       eindKlantId: tekst(fd, "eindKlantId"),
+      beheerKlantId: tekst(fd, "beheerKlantId"),
     },
   });
   // Het abonnement voor deze site volgt de factuurklant mee.

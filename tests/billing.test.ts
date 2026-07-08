@@ -1,9 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { actieDatum, radar } from "@/lib/billing";
+import { actieDatum, isEigenFacturatie, radar } from "@/lib/billing";
 
 describe("actieDatum", () => {
-  it("is één maand voor de renewal-datum", () => {
-    expect(actieDatum(new Date("2026-08-03")).toISOString().slice(0, 10)).toBe("2026-07-03");
+  it("is 45 dagen (1,5 maand) voor de renewal-datum", () => {
+    expect(actieDatum(new Date("2026-08-03")).toISOString().slice(0, 10)).toBe("2026-06-19");
+  });
+});
+
+describe("isEigenFacturatie", () => {
+  it("verlengingen vóór maart 2026 zijn nog edu-tech", () => {
+    expect(isEigenFacturatie(new Date("2026-02-15"))).toBe(false);
+    expect(isEigenFacturatie(new Date("2026-03-01"))).toBe(true);
+    expect(isEigenFacturatie(new Date("2026-08-03"))).toBe(true);
   });
 });
 
