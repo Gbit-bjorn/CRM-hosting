@@ -15,6 +15,7 @@ type Rij = {
   klant: string;
   leverancierStatus: string;
   betreft: string;
+  detail: string;
   bedrag: number;
   actieDatum: Date;
   renewalDate: Date;
@@ -85,7 +86,10 @@ function Lijst({ titel, rijen }: { titel: string; rijen: Rij[] }) {
                     )}
                   </span>
                 </td>
-                <td className={tbl.td}>{r.betreft}</td>
+                <td className={tbl.td}>
+                  {r.betreft}
+                  {r.detail && <span className="block text-xs text-neutral-400">{r.detail}</span>}
+                </td>
                 <td className={tbl.tdNum}>{r.actieDatum.toISOString().slice(0, 10)}</td>
                 <td className={tbl.tdNum}>{r.renewalDate.toISOString().slice(0, 10)}</td>
                 <td className={tbl.tdNum}>€{r.bedrag.toFixed(2)}</td>
@@ -163,22 +167,41 @@ function PerKlant({ rijen }: { rijen: Rij[] }) {
 }
 
 export default async function Radar() {
-  const momenten = await db.factuurMoment.findMany({
-    include: { abonnement: { include: { klant: true } } },
-    orderBy: { actieDatum: "asc" },
-  });
+  const [momenten, sites, domeinen] = await Promise.all([
+    db.factuurMoment.findMany({
+      include: { abonnement: { include: { klant: true } } },
+      orderBy: { actieDatum: "asc" },
+    }),
+    db.site.findMany({ select: { naam: true, hostingprijs: true } }),
+    db.domein.findMany({ select: { naam: true, tld: true, verkoopPrijs: true } }),
+  ]);
 
-  const rijen: Rij[] = momenten.map((m) => ({
-    id: m.id,
-    klantId: m.abonnement.klant.id,
-    klant: m.abonnement.klant.naam,
-    leverancierStatus: m.abonnement.klant.leverancierStatus,
-    betreft: m.abonnement.omschrijving ?? "",
-    bedrag: m.bedrag,
-    actieDatum: m.actieDatum,
-    renewalDate: m.abonnement.renewalDate,
-    status: m.status,
-  }));
+  // Abonnement, site en domein delen dezelfde naam (het domein) — zo
+  // splitsen we het jaarbedrag uit in een hosting- en een domeindeel.
+  const siteOp = new Map(sites.map((s) => [s.naam, s]));
+  const domeinOp = new Map(domeinen.map((d) => [d.naam, d]));
+
+  const rijen: Rij[] = momenten.map((m) => {
+    const naam = m.abonnement.omschrijving ?? "";
+    const site = siteOp.get(naam);
+    const domein = domeinOp.get(naam);
+    const delen: string[] = [];
+    if (site) delen.push(`hosting €${(site.hostingprijs ?? 0).toFixed(0)}`);
+    if (domein)
+      delen.push(`domeinnaam${domein.tld ? ` .${domein.tld}` : ""} €${(domein.verkoopPrijs ?? 0).toFixed(0)}`);
+    return {
+      id: m.id,
+      klantId: m.abonnement.klant.id,
+      klant: m.abonnement.klant.naam,
+      leverancierStatus: m.abonnement.klant.leverancierStatus,
+      betreft: naam,
+      detail: delen.join(" + "),
+      bedrag: m.bedrag,
+      actieDatum: m.actieDatum,
+      renewalDate: m.abonnement.renewalDate,
+      status: m.status,
+    };
+  });
 
   const vandaag = new Date();
   const startMaand = new Date(vandaag.getFullYear(), vandaag.getMonth(), 1);
