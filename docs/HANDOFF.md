@@ -148,6 +148,23 @@ radar, klanten kaart/lijst met zoek/filter/sorteer, domeinen, sites), detailpagi
 klant-hertoewijzing, contacten), professioneel G-Bit-redesign, dedup, facturatie-cutoff, **live op Vercel**.
 Tests: 5 (billing, nomeo, sync) — `npm test`.
 
+## 8b. Sessie 2026-07-08/09 — wat er bijkwam
+
+- **Mobiel volledig bruikbaar**: sticky topnav met tabs; alle lijsten tonen op mobiel kaartjes i.p.v. tabellen.
+- **Rijen overal volledig klikbaar** (stretched-link patroon `tbl.rowLink`, `tr` is relative).
+- **Verplaatsen in twee richtingen**: `VerplaatsKnop` (domein of site) op Domeinen-pagina (incl. "Per klant"-
+  groepeerweergave) én op de klantpagina. Acties: `verplaatsDomein` / `verplaatsSite` in mutations.ts.
+- **Bronvergelijking op de klantpagina** (`BronVergelijking.tsx`): CRM · Nomeo · CoManage per veld met
+  status gelijk/verschilt/1 bron + per-bron overneem-knoppen (btw, adres).
+- **Controle-pagina** (zie §6b): KPI's, conflicten, aan te vullen, niet-in-CoManage (gesorteerd op
+  openstaand bedrag), domeinen buiten Nomeo, VIES, zonder-btw.
+- **Bekende bronconflicten** (beslissing Bjorn nodig): Mertens Dylan (Nomeo-btw is oude eenmanszaak,
+  CoManage heeft actieve BV) · EDU-TECH (CRM/Nomeo-btw is per abuis dat van G-Bit zélf!) ·
+  Miniemeninstituut (instituut vs. scholenkoepel — welke entiteit factureren?).
+- **Vercel CLI is ingelogd** op deze machine; project gelinkt (`.vercel/`). `COMANAGE_API_KEY` is via
+  CLI aan **Production** toegevoegd op 2026-07-09. ⚠️ **Nog te verifiëren** dat de Controle-pagina in
+  productie na de redeploy effectief CoManage-data toont (banner "CoManage was niet bereikbaar" moet weg).
+
 ## 9. Refinement-backlog (volgende sessie)
 
 1. **Bianca opkuisen** — de 3 domein-only verifiëren/verplaatsen (kan nu via de UI: Domein → klant kiezen → Bewaren).
