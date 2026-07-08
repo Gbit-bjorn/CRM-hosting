@@ -51,6 +51,10 @@ npx tsx prisma/sync-once.ts   # eenmalige Nomeo-sync vanaf CLI
 ```
 Data-JSON in `data/` (git-ignored) komt uit de Excel-exports in `C:\Hosting\` (converteer met openpyxl; zie HANDOFF).
 
+## CoManage (boekhouding) — STRIKT READ-ONLY
+**Er wordt NOOIT naar CoManage geschreven** (geen POST/PATCH/DELETE, geen klanten/facturen aanmaken
+via de API) — harde afspraak van Bjorn. Client: `src/lib/comanage.ts` (enkel GET). Key: `COMANAGE_API_KEY`.
+
 ## Secrets
 In `.env.local` (lokaal, git-ignored) en Vercel env vars. Nomeo = OAuth2 client-credentials (`api.nomeo.com`).
 De secrets zijn ooit in chat gedeeld → overweeg rotatie van Nomeo-secret + `AUTH_SECRET`. Admin-wachtwoord is

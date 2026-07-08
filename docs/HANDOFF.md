@@ -101,7 +101,24 @@ kop-commentaar / de conversie in de git-historie). Bronbestanden: `C:\Hosting\co
 OAuth2 client-credentials, base `https://api.nomeo.com` (`src/lib/nomeo.ts`). `POST /auth/token` → Bearer JWT.
 `GET /clients` en `GET /domains/list` geven `{ success, message, data: [...] }` (let op: uitpakken via `.data`).
 Domein-velden: `domain, client_id, expire_date, registration_date, auto_renew, status, price` (price komt als string).
-API-key aangevraagd bij support@nomeo.be. Er is óók een Comanage-API (facturatie) — nog niet gekoppeld.
+API-key aangevraagd bij support@nomeo.be.
+
+## 6b. CoManage-API (facturatie)
+
+**⚠️ STRIKT READ-ONLY (afspraak Bjorn 2026-07-08): er wordt NOOIT naar CoManage geschreven** —
+geen POST/PATCH/DELETE, geen klanten of facturen aanmaken via de API. CoManage is de boekhouding;
+wij lezen er enkel uit. De client biedt bewust alleen GET-functies aan.
+
+Base `https://api.comanage.me/v1`, auth = vaste API-key als Bearer (`COMANAGE_API_KEY` in `.env.local`;
+key beheren op app.comanage.me → instellingen → integraties). Docs: https://docs.comanage.me/ (Postman).
+Client: `src/lib/comanage.ts` (read-only: contacts/customers/invoices, gepagineerd via `?page=&limit=`).
+Let op: records heten `number` (niet `id`); `/contacts` bevat óók leveranciers → filter op `customer: true`;
+facturen hebben `status` draft/pending/paid en `totals.total_ex_vat`.
+- `prisma/comanage-check.ts` — verkenning + match-rapport (read-only).
+- `prisma/comanage-koppel.ts` — vult `Klant.comanageId` (btw-match → naam-tokens → handmatige mapping;
+  bij dubbele CoManage-contacten wint het contact met de meeste facturen). Gedraaid op 2026-07-08:
+  **15 klanten gekoppeld**; 27 CRM-klanten bestaan (nog) niet in CoManage — die maakt Bjorn zelf
+  handmatig aan in CoManage (nooit via de API, zie read-only-afspraak hierboven).
 
 ## 7. Bekende data-kwesties
 
