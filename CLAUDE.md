@@ -43,13 +43,18 @@ Modellen: `Klant, Contact, Site, Domein, Abonnement, FactuurMoment` (zie `prisma
 ## Commando's (in `hosting-crm/`)
 ```
 npm run dev            # dev-server (poort 3000)
-npm test               # Vitest (5 tests: billing, nomeo, sync)
+npm test               # Vitest (6 tests: billing, nomeo, sync)
 npm run build          # prisma generate && next build (productie)
 npm run db:seed        # seed uit data/*.json
 npm run db:enrich      # sites + Bianca + tarieven
+npm run rapport -- --help     # token-zuinige JSON-rapporten: radar, controle, klanten, klant <naam>
 npx tsx prisma/sync-once.ts   # eenmalige Nomeo-sync vanaf CLI
 ```
 Data-JSON in `data/` (git-ignored) komt uit de Excel-exports in `C:\Hosting\` (converteer met openpyxl; zie HANDOFF).
+
+**Data lezen/analyseren? Gebruik `npm run rapport -- <rapport>`** (kale JSON, zelfde reken-logica
+als de app via `src/lib/billing.ts`/`src/lib/controle.ts`) — níét de web-UI via de browser uitlezen
+en geen ad-hoc Prisma-one-liners schrijven. Browser alleen voor visuele verificatie van UI-werk.
 
 ## CoManage (boekhouding) — STRIKT READ-ONLY
 **Er wordt NOOIT naar CoManage geschreven** (geen POST/PATCH/DELETE, geen klanten/facturen aanmaken

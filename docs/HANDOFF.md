@@ -168,6 +168,11 @@ Tests: 5 (billing, nomeo, sync) — `npm test`.
   De `.catch`-blokken op de Controle-pagina loggen nu via `console.error` naar de Vercel function-logs
   i.p.v. fouten stil in te slikken.
 
+- **`npm run rapport -- <radar|controle|klanten|klant naam>`** (`scripts/rapport.ts`): token-zuinige
+  JSON-rapporten voor AI-analyse en scripts. De bronvergelijking is daarvoor geëxtraheerd naar
+  `src/lib/controle.ts` (gedeeld met de Controle-pagina → gegarandeerd dezelfde cijfers).
+  Afspraak: AI-sessies lezen data via dit script, niet via de web-UI (zie CLAUDE.md).
+
 ## 9. Refinement-backlog (volgende sessie)
 
 1. **Bianca opkuisen** — de 3 domein-only verifiëren/verplaatsen (kan nu via de UI: Domein → klant kiezen → Bewaren).
