@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { comanageActief, listContacts, type CoContact } from "@/lib/comanage";
 import { listClients, type NomeoClient } from "@/lib/nomeo";
 import { checkVat, normaliseerBtw } from "@/lib/vies";
+import { isEigenFacturatie } from "@/lib/billing";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { StatusDot } from "@/components/ui/StatusDot";
@@ -121,7 +122,7 @@ async function ViesSectie({ items }: { items: { klant: KlantRij; btw: string }[]
 }
 
 export default async function Controle() {
-  const [klanten, losseDomeinen, coContacts, nomeoKlanten] = await Promise.all([
+  const [klanten, losseDomeinen, coContacts, nomeoKlanten, openMomenten] = await Promise.all([
     db.klant.findMany({
       orderBy: { naam: "asc" },
       select: {
@@ -141,6 +142,10 @@ export default async function Controle() {
     }),
     comanageActief() ? listContacts().catch(() => null) : Promise.resolve(null),
     listClients().catch(() => null as NomeoClient[] | null),
+    db.factuurMoment.findMany({
+      where: { status: "te_doen" },
+      select: { bedrag: true, abonnement: { select: { klantId: true, renewalDate: true } } },
+    }),
   ]);
   const coOp = new Map((coContacts ?? []).map((c) => [String(c.number), c]));
   const nomeoOp = new Map((nomeoKlanten ?? []).map((c) => [c.id, c]));
@@ -191,7 +196,19 @@ export default async function Controle() {
     }
   }
 
-  const nietGekoppeld = klanten.filter((k) => !k.comanageId && k.type !== "intern");
+  // Open te factureren per klant → bepaalt wie prioritair in CoManage moet.
+  const openPerKlant = new Map<string, { bedrag: number; regels: number }>();
+  for (const m of openMomenten) {
+    if (!isEigenFacturatie(m.abonnement.renewalDate)) continue;
+    const t = openPerKlant.get(m.abonnement.klantId) ?? { bedrag: 0, regels: 0 };
+    t.bedrag += m.bedrag;
+    t.regels += 1;
+    openPerKlant.set(m.abonnement.klantId, t);
+  }
+  const nietGekoppeld = klanten
+    .filter((k) => !k.comanageId && k.type !== "intern")
+    .map((k) => ({ ...k, open: openPerKlant.get(k.id) ?? { bedrag: 0, regels: 0 } }))
+    .sort((a, b) => b.open.bedrag - a.open.bedrag);
 
   const metBtw = klanten
     .map((k) => ({
@@ -292,18 +309,25 @@ export default async function Controle() {
       <Sectie
         titel="Niet in CoManage"
         aantal={nietGekoppeld.length}
-        sub="Nog geen klant in de boekhouding — handmatig aanmaken in CoManage vóór je factureert."
+        sub="Nog geen klant in de boekhouding — handmatig aanmaken in CoManage vóór je factureert. Gesorteerd op wat er open staat: bovenaan is het dringendst."
       >
-        <p className="px-3 py-2.5 text-sm leading-relaxed text-neutral-700">
-          {nietGekoppeld.map((k, i) => (
-            <span key={k.id}>
-              {i > 0 && <span className="text-neutral-300"> · </span>}
-              <Link href={`/klanten/${k.id}`} className="hover:text-coral-hover hover:underline">
-                {k.naam}
-              </Link>
+        {nietGekoppeld.map((k) => (
+          <div key={k.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+            <KlantLink id={k.id} naam={k.naam} />
+            <span className="ml-auto">
+              {k.open.bedrag > 0 ? (
+                <span className="tnum text-sm text-neutral-700">
+                  €{k.open.bedrag.toFixed(0)} open{" "}
+                  <span className="text-xs text-neutral-400">
+                    ({k.open.regels} regel{k.open.regels === 1 ? "" : "s"})
+                  </span>
+                </span>
+              ) : (
+                <span className="text-xs text-neutral-400">niets open</span>
+              )}
             </span>
-          ))}
-        </p>
+          </div>
+        ))}
       </Sectie>
 
       <Sectie
