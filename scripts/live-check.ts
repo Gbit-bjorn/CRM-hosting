@@ -7,7 +7,15 @@ config({ path: ".env.local" });
 import { promises as dns } from "node:dns";
 import net from "node:net";
 
-const PLESK_IP = "62.213.218.239";
+// De Plesk-webserver (bevestigd 2026-07-09: panel op :8443 + g-bit.be draait er).
+// .174 zit in hetzelfde netblok en serveert ook klantensites — tweede IP van de server.
+// Let op: 62.213.218.239 (oude notitie) is een spamfilter-node, níét de webserver.
+const PLESK_IPS = ["185.179.91.206", "185.179.91.174"];
+// Bekende externe adressen, voor duiding in het resultaat.
+const BEKEND: Record<string, string> = {
+  "62.213.219.148": "urlforward.websrv.be (doorverwijzing, geen hosting)",
+  "62.213.218.244": "one.cloudstar.be (shared hosting Cloudstar)",
+};
 const TIMEOUT_MS = 8000;
 
 type Resultaat = {
@@ -16,6 +24,7 @@ type Resultaat = {
   inNomeo: boolean;
   ip: string | null;
   opOnzePlesk: boolean;
+  waar?: string;
   nameservers: string[];
   http: string; // statuscode of foutlabel
   wordpress?: boolean;
@@ -112,7 +121,8 @@ async function checkDomein(d: { naam: string; klant: string | null; inNomeo: boo
     klant: d.klant,
     inNomeo: d.inNomeo,
     ip: ips[0] ?? null,
-    opOnzePlesk: ips.includes(PLESK_IP),
+    opOnzePlesk: ips.some((ip) => PLESK_IPS.includes(ip)),
+    ...(ips[0] && BEKEND[ips[0]] ? { waar: BEKEND[ips[0]] } : {}),
     nameservers: ns.map((n) => n.toLowerCase()).sort(),
     ...pagina,
   };
