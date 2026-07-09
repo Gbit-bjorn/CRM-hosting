@@ -188,8 +188,11 @@ Tests: 5 (billing, nomeo, sync) — `npm test`.
 1. **Bianca opkuisen** — de 3 domein-only verifiëren/verplaatsen (kan nu via de UI: Domein → klant kiezen → Bewaren).
 2. **Eindklanten zichtbaar** maken op reseller-sites.
 3. **Contacten** per klant importeren (nu grotendeels leeg).
-4. **Persoonlijke logins** voor Gill & Jarn via Microsoft 365 / Entra ID (vul `AUTH_MICROSOFT_ENTRA_ID_*` in Vercel +
-   `.env.local`; allowlist staat al in `src/auth.ts`).
+4. ~~Persoonlijke logins via Entra ID~~ **KLAAR (2026-07-09):** app-registratie "G-Bit Hosting CRM" in Entra
+   (single tenant, redirect `https://crm-hosting.vercel.app/api/auth/callback/microsoft-entra-id`),
+   `AUTH_MICROSOFT_ENTRA_ID_*` in Vercel Production + `.env.local`, knop staat live. Clientgeheim verloopt
+   over 24 maanden (juli 2028). Nog te doen: localhost-redirect-URI toevoegen in Entra als lokaal testen
+   gewenst is; eerste login door Bjorn/Gill/Jarn zelf (eventueel eenmalige consent-prompt accepteren).
 5. **Comanage-koppeling** + reconciliatie-rapport (mismatches Plesk ↔ Nomeo ↔ Comanage).
 6. **Automatische sync** (dagelijkse cron) i.p.v. de knop.
 7. **Aparte productie-database** (nu gedeeld dev+prod).
