@@ -21,6 +21,7 @@ type Rij = {
   actieDatum: Date;
   renewalDate: Date;
   status: string;
+  domeinVervallen: boolean;
 };
 
 function Kpi({
@@ -69,9 +70,12 @@ function Kaartjes({ rijen }: { rijen: Rij[] }) {
             </div>
             <p className="tnum shrink-0 text-sm font-semibold text-charcoal">€{r.bedrag.toFixed(2)}</p>
           </div>
-          {registratieBlokkeert(r.leverancierStatus) && (
-            <div className="mt-2">
-              <Badge soort="warn">eerst leveranciersregistratie</Badge>
+          {(registratieBlokkeert(r.leverancierStatus) || r.domeinVervallen) && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {registratieBlokkeert(r.leverancierStatus) && (
+                <Badge soort="warn">eerst leveranciersregistratie</Badge>
+              )}
+              {r.domeinVervallen && <Badge soort="bad">domein vervallen — niet factureren</Badge>}
             </div>
           )}
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-neutral-100 pt-2">
@@ -130,7 +134,10 @@ function Lijst({
                   </span>
                 </td>
                 <td className={tbl.td}>
-                  {r.betreft}
+                  <span className="inline-flex items-center gap-2">
+                    {r.betreft}
+                    {r.domeinVervallen && <Badge soort="bad">domein vervallen — niet factureren</Badge>}
+                  </span>
                   {r.detail && <span className="block text-xs text-neutral-400">{r.detail}</span>}
                 </td>
                 <td className={tbl.tdNum}>{r.actieDatum.toISOString().slice(0, 10)}</td>
@@ -259,7 +266,7 @@ export default async function Radar() {
       orderBy: { actieDatum: "asc" },
     }),
     db.site.findMany({ select: { naam: true, hostingprijs: true } }),
-    db.domein.findMany({ select: { naam: true, tld: true, verkoopPrijs: true } }),
+    db.domein.findMany({ select: { naam: true, tld: true, verkoopPrijs: true, registratieStatus: true } }),
   ]);
 
   // Abonnement, site en domein delen dezelfde naam (het domein) — zo
@@ -286,6 +293,8 @@ export default async function Radar() {
       actieDatum: m.actieDatum,
       renewalDate: m.abonnement.renewalDate,
       status: m.status,
+      // Whois zei AVAILABLE: registratie is echt weg → niet factureren.
+      domeinVervallen: domein?.registratieStatus === "AVAILABLE",
     };
   });
 

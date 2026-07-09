@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { StatusDot } from "@/components/ui/StatusDot";
 import OverneemKnop from "@/components/OverneemKnop";
+import SchrapKnop from "@/components/SchrapKnop";
 
 export const dynamic = "force-dynamic";
 
@@ -164,6 +165,14 @@ export default async function Controle() {
     db.site.findMany({ select: { naam: true, hostingprijs: true } }),
   ]);
   const tech = technischeControle(techDomeinen, siteNamen);
+  // Openstaand bedrag per vervallen domein — voor de expliciete schrap-knop.
+  const vervallenAbos = await db.abonnement.findMany({
+    where: { omschrijving: { in: tech.vervallen.map((d) => d.naam) } },
+    select: { omschrijving: true, factuurMomenten: { where: { status: "te_doen" }, select: { bedrag: true } } },
+  });
+  const openPerDomein = new Map(
+    vervallenAbos.map((a) => [a.omschrijving ?? "", a.factuurMomenten.reduce((t, m) => t + m.bedrag, 0)]),
+  );
   const { conflicten, aanTeVullen, nietGekoppeld, metBtw, zonderBtw } = vergelijkBronnen(
     klanten,
     coContacts,
@@ -315,10 +324,17 @@ export default async function Controle() {
         sub="Whois zegt AVAILABLE: registratie is echt weg. Schrap de openstaande factuurregels — dit valt niet meer te verlengen of factureren."
       >
         {tech.vervallen.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5">
             <DomeinLink id={d.id} naam={d.naam} />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
-            <span className="ml-auto"><StatusDot tone="bad">vrijgekomen</StatusDot></span>
+            <StatusDot tone="bad">vrijgekomen</StatusDot>
+            <span className="ml-auto">
+              {openPerDomein.has(d.naam) ? (
+                <SchrapKnop domeinNaam={d.naam} bedrag={openPerDomein.get(d.naam) ?? 0} />
+              ) : (
+                <span className="text-xs text-neutral-400">geen facturatie meer</span>
+              )}
+            </span>
           </div>
         ))}
       </Sectie>

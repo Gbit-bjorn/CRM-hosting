@@ -99,6 +99,21 @@ export async function neemOverInCrm(klantId: string, veld: "vatNumber" | "adres"
   revalidatePath(`/klanten/${klantId}`);
 }
 
+/**
+ * Schrap de facturatie van een vervallen domein: abonnement + factuurmomenten weg.
+ * Enkel via de expliciete knop op de Controle-pagina (beslissing van de gebruiker);
+ * het domein-record zelf blijft bestaan als naslag.
+ */
+export async function schrapFacturatie(domeinNaam: string) {
+  const abo = await db.abonnement.findFirst({ where: { omschrijving: domeinNaam } });
+  if (!abo) return;
+  await db.factuurMoment.deleteMany({ where: { abonnementId: abo.id } });
+  await db.abonnement.delete({ where: { id: abo.id } });
+  revalidatePath("/controle");
+  revalidatePath("/");
+  revalidatePath("/klanten");
+}
+
 /** Verplaats een domein naar een andere klant; abonnement en hosting-site verhuizen mee. */
 export async function verplaatsDomein(id: string, klantId: string) {
   if (!klantId) return;
