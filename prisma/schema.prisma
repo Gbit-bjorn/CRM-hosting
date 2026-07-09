@@ -67,6 +67,7 @@ model Site {
   pleskStatus    String?
   verbruikMB     Float?
   hostingprijs   Float?
+  notities       String?
   factuurKlant   Klant    @relation("FactuurKlant", fields: [factuurKlantId], references: [id])
   factuurKlantId String
   eindKlant      Klant?   @relation("EindKlant", fields: [eindKlantId], references: [id])
@@ -88,6 +89,7 @@ model Domein {
   status           String?
   inkoopPrijs      Float?
   verkoopPrijs     Float?
+  notities         String?
   nomeoId          String?   @unique
   klant            Klant?    @relation(fields: [klantId], references: [id])
   klantId          String?

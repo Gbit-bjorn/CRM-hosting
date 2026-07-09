@@ -181,6 +181,7 @@ async function klantRapport(zoek: string) {
       status: d.status,
       inNomeo: !!d.nomeoId,
       verkoopPrijs: d.verkoopPrijs,
+      ...(d.notities ? { notities: d.notities } : {}),
     })),
     sites: k.sites.map((s) => ({
       naam: s.naam,
@@ -188,6 +189,7 @@ async function klantRapport(zoek: string) {
       hostingprijs: s.hostingprijs,
       ...(s.eindKlant ? { eindKlant: s.eindKlant.naam } : {}),
       ...(s.beheerKlant ? { beheerKlant: s.beheerKlant.naam } : {}),
+      ...(s.notities ? { notities: s.notities } : {}),
     })),
     ...(k.beheerSites.length > 0
       ? {

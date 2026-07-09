@@ -61,6 +61,9 @@ export default async function DomeinDetail({ params }: { params: Promise<{ id: s
             className={veldKlasse}
           />
         </Veld>
+        <Veld label="Notities">
+          <textarea name="notities" defaultValue={d.notities ?? ""} rows={3} className={veldKlasse} />
+        </Veld>
         <BewaarKnop />
       </form>
     </div>

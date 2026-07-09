@@ -54,6 +54,9 @@ export default async function SiteDetail({ params }: { params: Promise<{ id: str
             className={veldKlasse}
           />
         </Veld>
+        <Veld label="Notities">
+          <textarea name="notities" defaultValue={s.notities ?? ""} rows={3} className={veldKlasse} />
+        </Veld>
         <BewaarKnop />
       </form>
     </div>

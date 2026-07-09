@@ -52,7 +52,7 @@ export async function updateDomein(id: string, fd: FormData) {
   const klantId = tekst(fd, "klantId");
   const d = await db.domein.update({
     where: { id },
-    data: { verkoopPrijs: getal(fd, "verkoopPrijs"), klantId },
+    data: { verkoopPrijs: getal(fd, "verkoopPrijs"), klantId, notities: tekst(fd, "notities") },
   });
   // Facturatie én hosting volgen de klant van het domein mee.
   if (klantId) {
@@ -112,6 +112,7 @@ export async function updateSite(id: string, fd: FormData) {
       factuurKlantId: factuurKlantId ?? undefined,
       eindKlantId: tekst(fd, "eindKlantId"),
       beheerKlantId: tekst(fd, "beheerKlantId"),
+      notities: tekst(fd, "notities"),
     },
   });
   // Het abonnement voor deze site volgt de factuurklant mee.
