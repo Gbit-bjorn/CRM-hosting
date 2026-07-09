@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Plus } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/PageHeader";
 import KlantenView, { type Kaart } from "@/components/KlantenView";
@@ -33,7 +35,14 @@ export default async function Klanten() {
 
   return (
     <div>
-      <PageHeader title="Klanten" count={klanten.length} />
+      <PageHeader title="Klanten" count={klanten.length}>
+        <Link
+          href="/klanten/nieuw"
+          className="inline-flex items-center gap-1.5 rounded-md bg-charcoal px-3 py-1.5 text-sm font-medium text-white hover:bg-charcoal/90"
+        >
+          <Plus size={14} /> Nieuwe klant
+        </Link>
+      </PageHeader>
       <KlantenView klanten={kaarten} />
     </div>
   );

@@ -1,5 +1,7 @@
 import { db } from "@/lib/db";
 import { listDomains, listClients } from "@/lib/nomeo";
+import { domeinPrijs } from "@/lib/pricing";
+import { actieDatum } from "@/lib/billing";
 
 /** Parse naar Date of null (Nomeo geeft soms lege/ongeldige datums). */
 function parseDate(v: unknown): Date | null {
@@ -15,11 +17,12 @@ function num(v: unknown): number | null {
   return isNaN(n) ? null : n;
 }
 
-export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }> {
+export async function syncNomeo(): Promise<{ domeinen: number; klanten: number; abonnementen: number }> {
   const [klanten, domeinen] = await Promise.all([listClients(), listDomains()]);
   const nomeoKlant = new Map(klanten.map((k) => [k.id, k]));
 
   let dCount = 0;
+  let nieuweAbos = 0;
   const gemergd = new Set<string>();
 
   for (const d of domeinen) {
@@ -71,6 +74,24 @@ export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }
       update: ext, // GEEN verkoopPrijs of andere eigen velden
     });
     dCount++;
+
+    // Nieuw domein zonder abonnement → meteen op de facturatie-radar zetten
+    // (anders blijft een vers geregistreerd domein onzichtbaar, zoals
+    // gelateriagiuditta.be overkwam). Enkel aanmaken — bestaande abonnementen
+    // (met eigen prijzen) blijven onaangeroerd.
+    if (klantId && ext.expireDate) {
+      const abo = await db.abonnement.findFirst({ where: { omschrijving: d.domain } });
+      if (!abo) {
+        const bedrag = domeinPrijs(ext.tld);
+        const nieuw = await db.abonnement.create({
+          data: { omschrijving: d.domain, jaarbedrag: bedrag, renewalDate: ext.expireDate, klantId },
+        });
+        await db.factuurMoment.create({
+          data: { abonnementId: nieuw.id, actieDatum: actieDatum(ext.expireDate), bedrag },
+        });
+        nieuweAbos++;
+      }
+    }
   }
 
   // Tijdstip bijhouden zodat de UI kan tonen hoe vers de data is.
@@ -81,5 +102,5 @@ export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }
     update: { value: nu },
   });
 
-  return { domeinen: dCount, klanten: gemergd.size };
+  return { domeinen: dCount, klanten: gemergd.size, abonnementen: nieuweAbos };
 }

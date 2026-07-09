@@ -5,6 +5,8 @@ vi.mock("@/lib/nomeo");
 
 const upsertDomein = vi.fn();
 const updateKlant = vi.fn().mockResolvedValue({});
+const createAbo = vi.fn().mockResolvedValue({ id: "abo1" });
+const createMoment = vi.fn().mockResolvedValue({});
 vi.mock("@/lib/db", () => ({
   db: {
     klant: {
@@ -15,6 +17,13 @@ vi.mock("@/lib/db", () => ({
     domein: {
       findUnique: vi.fn().mockResolvedValue({ naam: "example.be", klantId: "kbestaand" }),
       upsert: (a: unknown) => upsertDomein(a),
+    },
+    abonnement: {
+      findFirst: vi.fn().mockResolvedValue(null), // nog geen abonnement → sync maakt er een
+      create: (a: unknown) => createAbo(a),
+    },
+    factuurMoment: {
+      create: (a: unknown) => createMoment(a),
     },
     instelling: {
       upsert: vi.fn().mockResolvedValue({}),
@@ -55,5 +64,18 @@ describe("syncNomeo", () => {
     expect(arg.update.klantId).toBe("kbestaand");
     expect(arg.update.expireDate).toBeInstanceOf(Date);
     expect(result.domeinen).toBe(1);
+
+    // Nieuw domein zonder abonnement → abonnement (.be = €15) + factuurmoment
+    // op renewalDate − 45 dagen, zodat het meteen op de radar staat.
+    expect(createAbo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ omschrijving: "example.be", jaarbedrag: 15, klantId: "kbestaand" }),
+      }),
+    );
+    const moment = createMoment.mock.calls[0][0].data;
+    expect(moment.bedrag).toBe(15);
+    const verschilDagen = (Date.parse("2026-08-03") - moment.actieDatum.getTime()) / 86_400_000;
+    expect(verschilDagen).toBe(45);
+    expect(result.abonnementen).toBe(1);
   });
 });

@@ -1,6 +1,7 @@
 "use server";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 function tekst(fd: FormData, key: string): string | null {
   const v = fd.get(key);
@@ -32,6 +33,25 @@ export async function updateKlant(id: string, fd: FormData) {
   });
   revalidatePath(`/klanten/${id}`);
   revalidatePath("/klanten");
+}
+
+/** Nieuwe klant aanmaken. Bestaat de naam al → door naar die bestaande klant. */
+export async function maakKlant(fd: FormData) {
+  const naam = tekst(fd, "naam");
+  if (!naam) return;
+  const bestaand = await db.klant.findUnique({ where: { naam } });
+  const k =
+    bestaand ??
+    (await db.klant.create({
+      data: {
+        naam,
+        type: (tekst(fd, "type") ?? "direct") as "direct" | "reseller" | "intern",
+        vatNumber: tekst(fd, "vatNumber"),
+        adres: tekst(fd, "adres"),
+      },
+    }));
+  revalidatePath("/klanten");
+  redirect(`/klanten/${k.id}`);
 }
 
 export async function addContact(klantId: string, fd: FormData) {
