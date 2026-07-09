@@ -20,6 +20,8 @@ export default async function Domeinen() {
     expireDate: d.expireDate ? d.expireDate.toISOString() : null,
     autoRenew: d.autoRenew,
     heeftHosting: hostingSet.has(d.naam),
+    inNomeo: !!d.nomeoId,
+    registratieStatus: d.registratieStatus,
   }));
 
   return (

@@ -16,6 +16,8 @@ export type DomeinRij = {
   expireDate: string | null;
   autoRenew: boolean;
   heeftHosting: boolean;
+  inNomeo: boolean;
+  registratieStatus: string | null; // whois: AVAILABLE = vervallen én weer vrij
 };
 
 const filters = [
@@ -29,17 +31,27 @@ const sorts = [
 ];
 
 function statusVan(d: DomeinRij): { tone: Tone; label: string } {
+  // Whois (live-check) heeft het laatste woord: AVAILABLE = registratie echt weg.
+  if (d.registratieStatus === "AVAILABLE") return { tone: "bad", label: "vervallen — weer vrij" };
+  // Buiten ons Nomeo-account weten we alleen dat het geregistreerd is (whois);
+  // de vervaldatum en auto-renew-vlag komen uit de oude Plesk-export en zeggen niets.
+  if (!d.inNomeo) return { tone: "idle", label: "buiten ons beheer" };
   const dagen = d.expireDate
     ? (new Date(d.expireDate).getTime() - Date.now()) / 86_400_000
     : null;
-  // Met auto-renew aan verlengt het domein vanzelf — een verstreken datum is dan
-  // hoogstens verouderde data, geen alarm.
-  if (dagen != null && dagen < 0)
-    return d.autoRenew ? { tone: "idle", label: "verlengt automatisch" } : { tone: "bad", label: "verlopen" };
-  if (dagen != null && dagen < 30)
-    return d.autoRenew ? { tone: "ok", label: "verlengt automatisch" } : { tone: "warn", label: "vervalt < 30d" };
-  if (!d.autoRenew) return { tone: "warn", label: "auto-renew uit" };
+  if (!d.autoRenew)
+    return dagen != null && dagen < 30
+      ? { tone: "bad", label: "auto-renew UIT — vervalt echt" }
+      : { tone: "warn", label: "auto-renew uit" };
+  if (dagen != null && dagen < 30) return { tone: "ok", label: "verlengt automatisch" };
   return { tone: "ok", label: "actief" };
+}
+
+/** Datumlabel: enkel Nomeo-datums zijn betrouwbaar; de rest is oude Plesk-data. */
+function vervaltLabel(d: DomeinRij): string | null {
+  if (!d.expireDate) return null;
+  const datum = d.expireDate.slice(0, 10);
+  return d.inNomeo ? `vervalt ${datum}` : `oude Plesk-datum ${datum}`;
 }
 
 export default function DomeinenView({
@@ -176,10 +188,8 @@ export default function DomeinenView({
                         {d.heeftHosting ? "Hosting" : "Domein"}
                       </Badge>
                       <StatusDot tone={s.tone}>{s.label}</StatusDot>
-                      {d.expireDate && (
-                        <span className="tnum text-xs text-neutral-500">
-                          vervalt {d.expireDate.slice(0, 10)}
-                        </span>
+                      {vervaltLabel(d) && (
+                        <span className="tnum text-xs text-neutral-500">{vervaltLabel(d)}</span>
                       )}
                       <span className="ml-auto">
                         <VerplaatsKnop type="domein" id={d.id} naam={d.naam} huidigeKlantId={d.klantId} klanten={klanten} />
@@ -218,10 +228,8 @@ export default function DomeinenView({
                   <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
                     <StatusDot tone={s.tone}>{s.label}</StatusDot>
                     <span className="inline-flex items-center gap-2">
-                      {d.expireDate && (
-                        <span className="tnum text-xs text-neutral-500">
-                          vervalt {d.expireDate.slice(0, 10)}
-                        </span>
+                      {vervaltLabel(d) && (
+                        <span className="tnum text-xs text-neutral-500">{vervaltLabel(d)}</span>
                       )}
                       <VerplaatsKnop type="domein" id={d.id} naam={d.naam} huidigeKlantId={d.klantId} klanten={klanten} />
                     </span>
@@ -260,7 +268,12 @@ export default function DomeinenView({
                             {d.heeftHosting ? "Hosting" : "Domein"}
                           </Badge>
                         </td>
-                        <td className={tbl.tdNum}>{d.expireDate ? d.expireDate.slice(0, 10) : "—"}</td>
+                        <td className={tbl.tdNum}>
+                          {d.expireDate ? d.expireDate.slice(0, 10) : "—"}
+                          {d.expireDate && !d.inNomeo && (
+                            <span className="block text-[11px] text-neutral-400">oude Plesk-datum</span>
+                          )}
+                        </td>
                         <td className={tbl.td}>
                           <StatusDot tone={s.tone}>{s.label}</StatusDot>
                         </td>
