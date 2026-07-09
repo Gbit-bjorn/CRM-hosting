@@ -164,6 +164,7 @@ async function checkDomein(d: { naam: string; klant: string | null; inNomeo: boo
         httpStatus: r.http,
         cms: r.generator ?? (r.wordpress ? "WordPress" : null),
         registratieStatus: r.rdapStatus ?? null,
+        registrar: r.rdapRegistrar ?? null,
         laatsteLiveCheck: new Date(),
       },
     });

@@ -22,6 +22,7 @@ export default async function Domeinen() {
     heeftHosting: hostingSet.has(d.naam),
     inNomeo: !!d.nomeoId,
     registratieStatus: d.registratieStatus,
+    registrar: d.registrar,
   }));
 
   return (

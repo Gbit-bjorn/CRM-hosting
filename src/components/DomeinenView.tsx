@@ -18,10 +18,14 @@ export type DomeinRij = {
   heeftHosting: boolean;
   inNomeo: boolean;
   registratieStatus: string | null; // whois: AVAILABLE = vervallen én weer vrij
+  registrar: string | null; // whois: waar het geregistreerd is (enkel buiten ons Nomeo)
 };
 
 const filters = [
   { key: "alle", label: "Alle" },
+  { key: "nomeo", label: "In ons Nomeo" },
+  { key: "buiten", label: "Buiten ons beheer" },
+  { key: "vervallen", label: "Vervallen" },
   { key: "geen-renew", label: "Auto-renew uit" },
   { key: "binnenkort", label: "Vervalt < 30d" },
 ];
@@ -35,7 +39,10 @@ function statusVan(d: DomeinRij): { tone: Tone; label: string } {
   if (d.registratieStatus === "AVAILABLE") return { tone: "bad", label: "vervallen — weer vrij" };
   // Buiten ons Nomeo-account weten we alleen dat het geregistreerd is (whois);
   // de vervaldatum en auto-renew-vlag komen uit de oude Plesk-export en zeggen niets.
-  if (!d.inNomeo) return { tone: "idle", label: "buiten ons beheer" };
+  if (!d.inNomeo) {
+    const reg = d.registrar?.split(" - ")[0]?.trim();
+    return { tone: "idle", label: reg ? `buiten ons beheer · bij ${reg}` : "buiten ons beheer" };
+  }
   const dagen = d.expireDate
     ? (new Date(d.expireDate).getTime() - Date.now()) / 86_400_000
     : null;
@@ -71,9 +78,13 @@ export default function DomeinenView({
     const gefilterd = domeinen.filter((d) => {
       if (q && !d.naam.toLowerCase().includes(q) && !d.klant.toLowerCase().includes(q))
         return false;
-      if (filter === "geen-renew") return !d.autoRenew;
+      if (filter === "nomeo") return d.inNomeo;
+      if (filter === "buiten") return !d.inNomeo && d.registratieStatus !== "AVAILABLE";
+      if (filter === "vervallen") return d.registratieStatus === "AVAILABLE";
+      // Auto-renew en vervaldatum zijn enkel betrouwbaar voor ons eigen Nomeo-portfolio.
+      if (filter === "geen-renew") return d.inNomeo && !d.autoRenew;
       if (filter === "binnenkort") {
-        if (!d.expireDate) return false;
+        if (!d.inNomeo || !d.expireDate) return false;
         return (new Date(d.expireDate).getTime() - Date.now()) / 86_400_000 < 30;
       }
       return true;
@@ -106,7 +117,7 @@ export default function DomeinenView({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput value={zoek} onChange={setZoek} placeholder="Zoek domein of klant…" />
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {filters.map((f) => (
             <button
               key={f.key}

@@ -97,6 +97,7 @@ model Domein {
   httpStatus        String?   // statuscode of "onbereikbaar"
   cms               String?   // bv. "WordPress 6.7"
   registratieStatus String?   // whois/RDAP: AVAILABLE = vervallen én weer vrij
+  registrar         String?   // whois/RDAP: waar het domein geregistreerd is (enkel buiten ons Nomeo)
   laatsteLiveCheck  DateTime?
   // Nomeo-vlaggen (sync) + domeincontacten (registrant/on-site/admin/...).
   nomeoExpired       Boolean?
