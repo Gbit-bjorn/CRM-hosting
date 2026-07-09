@@ -113,3 +113,44 @@ export function vergelijkBronnen(
 
   return { conflicten, aanTeVullen, nietGekoppeld, metBtw, zonderBtw };
 }
+
+// ---- Technische controle (gevoed door scripts/live-check.ts + nomeo-contacten.ts) ----
+
+export type DomeinTech = {
+  id: string;
+  naam: string;
+  opOnzeServer: boolean | null;
+  liveWaar: string | null;
+  httpStatus: string | null;
+  cms: string | null;
+  registratieStatus: string | null;
+  laatsteLiveCheck: Date | null;
+  nomeoContacts: unknown;
+  klant: { id: string; naam: string } | null;
+};
+
+export type SiteNaam = { naam: string; hostingprijs: number | null };
+
+/**
+ * Kruist de live-check met de facturatie: wat is vervallen, wie betaalt hosting
+ * terwijl de site elders draait, wie draait bij ons zonder facturatie, en welke
+ * Nomeo-domeincontacten verwijzen nog naar EDU-TECH/Casper (overname-vervuiling).
+ */
+export function technischeControle(domeinen: DomeinTech[], sites: SiteNaam[]) {
+  const siteOp = new Map(sites.map((s) => [s.naam, s]));
+  const gecheckt = domeinen.filter((d) => d.laatsteLiveCheck != null);
+
+  const vervallen = gecheckt.filter((d) => d.registratieStatus === "AVAILABLE");
+  const eldersMetHosting = gecheckt.filter((d) => d.opOnzeServer === false && siteOp.has(d.naam));
+  const bijOnsZonderSite = gecheckt.filter((d) => d.opOnzeServer === true && !siteOp.has(d.naam));
+  const kapotBijOns = gecheckt.filter(
+    (d) => d.opOnzeServer === true && d.httpStatus != null && d.httpStatus !== "200",
+  );
+  const verouderdContact = domeinen.filter((d) => {
+    if (!d.nomeoContacts) return false;
+    const s = JSON.stringify(d.nomeoContacts).toLowerCase();
+    return s.includes("edu-tech") || s.includes("casper");
+  });
+
+  return { gecheckt: gecheckt.length, vervallen, eldersMetHosting, bijOnsZonderSite, kapotBijOns, verouderdContact };
+}

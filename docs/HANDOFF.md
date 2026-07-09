@@ -173,6 +173,16 @@ Tests: 5 (billing, nomeo, sync) — `npm test`.
   `src/lib/controle.ts` (gedeeld met de Controle-pagina → gegarandeerd dezelfde cijfers).
   Afspraak: AI-sessies lezen data via dit script, niet via de web-UI (zie CLAUDE.md).
 
+- **Technische situatie (sessie 2026-07-09):** `npm run live-check` (DNS/HTTP/whois per domein → velden op
+  Domein: liveIp/liveWaar/opOnzeServer/httpStatus/cms/registratieStatus) en `npm run nomeo-contacten`
+  (domeincontacten registrant/on-site/admin als JSON op Domein). Controle-pagina toont daaruit: vervallen
+  domeinen (5: fonsdrinks + 4 apokring — schrap facturatie), betaalt-hosting-maar-draait-elders (3),
+  draait-bij-ons-zonder-facturatie (12, o.a. gelateriagiuditta), kapot (wijzervzw.be = 500), en
+  **49/52 domeinen met EDU-TECH/Casper als Nomeo-contact**. Domeinpagina: site-link + live-paneel +
+  contactenpaneel. ⚠️ Server-IP gecorrigeerd: Plesk = **185.179.91.206** (+ .174); 62.213.218.239 =
+  spamfilter-node. De "buiten Nomeo"-domeinen blijken grotendeels bij Nomeo te zitten onder een ander
+  account (vermoedelijk Caspers oude) — overzetten via Nomeo-support.
+
 ## 9. Refinement-backlog (volgende sessie)
 
 1. **Bianca opkuisen** — de 3 domein-only verifiëren/verplaatsen (kan nu via de UI: Domein → klant kiezen → Bewaren).

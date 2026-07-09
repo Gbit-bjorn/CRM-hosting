@@ -3,6 +3,7 @@
 // Gebruik: npm run rapport -- --help
 import { config } from "dotenv";
 config({ path: ".env.local" });
+import type { DomeinTech } from "../src/lib/controle";
 
 const HELP = `Gebruik: npm run rapport -- <rapport> [argument]
 
@@ -66,7 +67,7 @@ async function controleRapport() {
   const { db } = await import("../src/lib/db");
   const { comanageActief, listContacts } = await import("../src/lib/comanage");
   const { listClients } = await import("../src/lib/nomeo");
-  const { vergelijkBronnen } = await import("../src/lib/controle");
+  const { vergelijkBronnen, technischeControle } = await import("../src/lib/controle");
 
   const [klanten, coContacts, nomeoKlanten, openMomenten] = await Promise.all([
     db.klant.findMany({
@@ -89,8 +90,41 @@ async function controleRapport() {
     }),
   ]);
 
+  const [techDomeinen, siteNamen] = await Promise.all([
+    db.domein.findMany({
+      select: {
+        id: true,
+        naam: true,
+        opOnzeServer: true,
+        liveWaar: true,
+        httpStatus: true,
+        cms: true,
+        registratieStatus: true,
+        laatsteLiveCheck: true,
+        nomeoContacts: true,
+        klant: { select: { id: true, naam: true } },
+      },
+    }),
+    db.site.findMany({ select: { naam: true, hostingprijs: true } }),
+  ]);
+  const t = technischeControle(techDomeinen, siteNamen);
+  const kaal = (d: DomeinTech) => ({
+    domein: d.naam,
+    klant: d.klant?.naam ?? null,
+    ...(d.liveWaar ? { waar: d.liveWaar } : {}),
+    ...(d.httpStatus ? { http: d.httpStatus } : {}),
+  });
+
   const r = vergelijkBronnen(klanten, coContacts, nomeoKlanten, openMomenten);
   return {
+    technisch: {
+      gecheckt: t.gecheckt,
+      vervallen: t.vervallen.map(kaal),
+      eldersMetHosting: t.eldersMetHosting.map(kaal),
+      bijOnsZonderSite: t.bijOnsZonderSite.map(kaal),
+      kapotBijOns: t.kapotBijOns.map(kaal),
+      verouderdContact: t.verouderdContact.map((d) => d.naam),
+    },
     bronnen: {
       coManage: coContacts ? "ok" : "onbereikbaar of geen key",
       nomeo: nomeoKlanten ? "ok" : "onbereikbaar",

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { comanageActief, listContacts } from "@/lib/comanage";
 import { listClients, type NomeoClient } from "@/lib/nomeo";
 import { checkVat } from "@/lib/vies";
-import { vergelijkBronnen, type KlantRij } from "@/lib/controle";
+import { vergelijkBronnen, technischeControle, type KlantRij } from "@/lib/controle";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { StatusDot } from "@/components/ui/StatusDot";
@@ -57,6 +57,14 @@ function Sectie({
 function KlantLink({ id, naam }: { id: string; naam: string }) {
   return (
     <Link href={`/klanten/${id}`} className="text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline">
+      {naam}
+    </Link>
+  );
+}
+
+function DomeinLink({ id, naam }: { id: string; naam: string }) {
+  return (
+    <Link href={`/domeinen/${id}`} className="text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline">
       {naam}
     </Link>
   );
@@ -137,6 +145,25 @@ export default async function Controle() {
       select: { bedrag: true, abonnement: { select: { klantId: true, renewalDate: true } } },
     }),
   ]);
+  const [techDomeinen, siteNamen] = await Promise.all([
+    db.domein.findMany({
+      select: {
+        id: true,
+        naam: true,
+        opOnzeServer: true,
+        liveWaar: true,
+        httpStatus: true,
+        cms: true,
+        registratieStatus: true,
+        laatsteLiveCheck: true,
+        nomeoContacts: true,
+        klant: { select: { id: true, naam: true } },
+      },
+      orderBy: { naam: "asc" },
+    }),
+    db.site.findMany({ select: { naam: true, hostingprijs: true } }),
+  ]);
+  const tech = technischeControle(techDomeinen, siteNamen);
   const { conflicten, aanTeVullen, nietGekoppeld, metBtw, zonderBtw } = vergelijkBronnen(
     klanten,
     coContacts,
@@ -268,6 +295,85 @@ export default async function Controle() {
             <span className="tnum ml-auto text-xs text-neutral-400">
               {d.expireDate ? `Plesk-datum ${d.expireDate.toISOString().slice(0, 10)}` : "geen datum"}
             </span>
+          </div>
+        ))}
+      </Sectie>
+
+      <div className="border-t border-neutral-200 pt-5">
+        <h2 className="text-base font-semibold text-charcoal">Technische situatie</h2>
+        <p className="mt-0.5 text-xs text-neutral-500">
+          Gevoed door de live-check (DNS, HTTP, whois) en de Nomeo-domeincontacten.{" "}
+          {tech.gecheckt === 0
+            ? "Nog geen live-check gedraaid — voer `npm run live-check` uit."
+            : `${tech.gecheckt} domeinen gecheckt.`}
+        </p>
+      </div>
+
+      <Sectie
+        titel="Vervallen en weer vrij"
+        aantal={tech.vervallen.length}
+        sub="Whois zegt AVAILABLE: registratie is echt weg. Schrap de openstaande factuurregels — dit valt niet meer te verlengen of factureren."
+      >
+        {tech.vervallen.map((d) => (
+          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+            <DomeinLink id={d.id} naam={d.naam} />
+            <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
+            <span className="ml-auto"><StatusDot tone="bad">vrijgekomen</StatusDot></span>
+          </div>
+        ))}
+      </Sectie>
+
+      <Sectie
+        titel="Betaalt hosting, maar draait niet bij ons"
+        aantal={tech.eldersMetHosting.length}
+        sub="Er bestaat een hosting-site in het CRM, maar het domein wijst naar een andere server. Verhuisd of stopgezet? Beslis: facturatie schrappen of terughalen."
+      >
+        {tech.eldersMetHosting.map((d) => (
+          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+            <DomeinLink id={d.id} naam={d.naam} />
+            <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
+            <span className="ml-auto text-xs text-neutral-400">{d.liveWaar ?? "elders"} · HTTP {d.httpStatus ?? "?"}</span>
+          </div>
+        ))}
+      </Sectie>
+
+      <Sectie
+        titel="Draait bij ons zonder hosting-facturatie"
+        aantal={tech.bijOnsZonderSite.length}
+        sub="Het domein wijst naar onze Plesk, maar er is geen hosting-site in het CRM. Mogelijk gratis meeliftend — of een alias/doorverwijzing naar een andere site."
+      >
+        {tech.bijOnsZonderSite.map((d) => (
+          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+            <DomeinLink id={d.id} naam={d.naam} />
+            <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
+            <span className="ml-auto text-xs text-neutral-400">{d.cms ?? ""} · HTTP {d.httpStatus ?? "?"}</span>
+          </div>
+        ))}
+      </Sectie>
+
+      <Sectie
+        titel="Kapot op onze server"
+        aantal={tech.kapotBijOns.length}
+        sub="Wijst naar onze Plesk maar antwoordt niet met HTTP 200 — kapotte of lege site."
+      >
+        {tech.kapotBijOns.map((d) => (
+          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+            <DomeinLink id={d.id} naam={d.naam} />
+            <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
+            <span className="ml-auto"><StatusDot tone="warn">HTTP {d.httpStatus}</StatusDot></span>
+          </div>
+        ))}
+      </Sectie>
+
+      <Sectie
+        titel="Verouderde Nomeo-contacten"
+        aantal={tech.verouderdContact.length}
+        sub="Bij deze domeinen staat EDU-TECH of Casper nog als registrant/whois/admin-contact in Nomeo. Aanpassen doe je in het Nomeo-portaal."
+      >
+        {tech.verouderdContact.map((d) => (
+          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
+            <DomeinLink id={d.id} naam={d.naam} />
+            <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
           </div>
         ))}
       </Sectie>

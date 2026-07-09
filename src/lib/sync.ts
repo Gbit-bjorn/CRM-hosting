@@ -60,6 +60,8 @@ export async function syncNomeo(): Promise<{ domeinen: number; klanten: number }
       registrationDate: parseDate(d.registration_date),
       autoRenew: d.auto_renew,
       status: d.status,
+      nomeoExpired: d.expired ?? null,
+      nomeoCancelled: d.cancelled_but_not_expired ?? null,
       inkoopPrijs: num(d.price),
       klantId,
     };

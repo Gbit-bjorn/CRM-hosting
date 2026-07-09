@@ -13,7 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:enrich": "tsx prisma/enrich.ts",
     "rapport": "tsx scripts/rapport.ts",
-    "live-check": "tsx scripts/live-check.ts"
+    "live-check": "tsx scripts/live-check.ts",
+    "nomeo-contacten": "tsx scripts/nomeo-contacten.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

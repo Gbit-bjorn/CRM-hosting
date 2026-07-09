@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import { updateSite } from "@/lib/mutations";
 import { Veld, veldKlasse, BewaarKnop, KlantOpties } from "@/components/ui/form";
@@ -23,7 +23,17 @@ export default async function SiteDetail({ params }: { params: Promise<{ id: str
         >
           <ArrowLeft size={14} /> Sites
         </Link>
-        <h1 className="mt-2 text-xl font-semibold tracking-tight text-charcoal">{s.naam}</h1>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-charcoal">{s.naam}</h1>
+          <a
+            href={`https://${s.naam}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-coral-hover"
+          >
+            site openen <ExternalLink size={13} />
+          </a>
+        </div>
         {s.pleskStatus && <p className="mt-1 text-sm text-neutral-500">Plesk-status: {s.pleskStatus}</p>}
       </div>
 

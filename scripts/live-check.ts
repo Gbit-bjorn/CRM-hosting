@@ -151,6 +151,24 @@ async function checkDomein(d: { naam: string; klant: string | null; inNomeo: boo
     }),
   );
   resultaten.sort((a, b) => a.domein.localeCompare(b.domein));
+
+  // Resultaten bewaren op het Domein-record zodat de app (Controle, detailpagina's)
+  // ze kan tonen zonder zelf DNS/HTTP-calls te doen.
+  for (const r of resultaten) {
+    await db.domein.update({
+      where: { naam: r.domein },
+      data: {
+        liveIp: r.ip,
+        liveWaar: r.opOnzePlesk ? "onze Plesk" : (r.waar ?? (r.ip ? "elders" : "geen DNS")),
+        opOnzeServer: r.opOnzePlesk,
+        httpStatus: r.http,
+        cms: r.generator ?? (r.wordpress ? "WordPress" : null),
+        registratieStatus: r.rdapStatus ?? null,
+        laatsteLiveCheck: new Date(),
+      },
+    });
+  }
+
   console.log(JSON.stringify(resultaten));
   process.exit(0);
 })().catch((e) => {

@@ -9,6 +9,24 @@ export type NomeoDomain = {
   auto_renew: boolean;
   status: string;
   price: number | string | null;
+  expired?: boolean;
+  cancelled_but_not_expired?: boolean;
+};
+
+export type NomeoContact = {
+  first_name?: string | null;
+  last_name?: string | null;
+  company_name?: string | null;
+  email_address?: string | null;
+  phone_number?: string | null;
+  street?: string | null;
+  city?: string | null;
+  postal_code?: string | null;
+};
+
+/** Detail per domein — bevat o.a. contacts: registrant / on_site (whois) / admin / tech / billing. */
+export type NomeoDomainDetail = NomeoDomain & {
+  contacts?: Record<string, NomeoContact | null> | null;
 };
 
 export type NomeoClient = {
@@ -48,3 +66,12 @@ async function authedGet<T>(path: string): Promise<T> {
 
 export const listDomains = () => authedGet<NomeoDomain[]>("/domains/list");
 export const listClients = () => authedGet<NomeoClient[]>("/clients");
+
+/** Domein-detail (met contacten). Geef een token mee bij bulk-gebruik — spaart een auth-call per domein. */
+export async function getDomainDetail(naam: string, token?: string): Promise<NomeoDomainDetail> {
+  const t = token ?? (await getNomeoToken());
+  const res = await fetch(`${base()}/domains/${naam}`, { headers: { Authorization: `Bearer ${t}` } });
+  if (!res.ok) throw new Error(`Nomeo GET /domains/${naam} faalde: ${res.status}`);
+  const json = await res.json();
+  return (json?.data ?? json) as NomeoDomainDetail;
+}

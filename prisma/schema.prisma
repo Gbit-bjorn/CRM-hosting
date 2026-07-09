@@ -90,6 +90,19 @@ model Domein {
   inkoopPrijs      Float?
   verkoopPrijs     Float?
   notities         String?
+  // Live-check (scripts/live-check.ts): waar draait dit domein echt?
+  liveIp            String?
+  liveWaar          String?   // "onze Plesk" of duiding van het externe adres
+  opOnzeServer      Boolean?
+  httpStatus        String?   // statuscode of "onbereikbaar"
+  cms               String?   // bv. "WordPress 6.7"
+  registratieStatus String?   // whois/RDAP: AVAILABLE = vervallen én weer vrij
+  laatsteLiveCheck  DateTime?
+  // Nomeo-vlaggen (sync) + domeincontacten (registrant/on-site/admin/...).
+  nomeoExpired       Boolean?
+  nomeoCancelled     Boolean?
+  nomeoContacts      Json?
+  nomeoContactsCheck DateTime?
   nomeoId          String?   @unique
   klant            Klant?    @relation(fields: [klantId], references: [id])
   klantId          String?
