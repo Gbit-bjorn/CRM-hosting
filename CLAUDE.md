@@ -7,7 +7,8 @@ Interne mini-CRM + facturatie-radar voor G-Bit (hostingbeheer). Gebruikers: Bjor
 
 - **Live:** https://crm-hosting.vercel.app (auto-deploy bij elke push naar `main`)
 - **Repo:** GitHub `Gbit-bjorn/CRM-hosting` (privé) · lokaal: `C:\Hosting\hosting-crm`
-- **Login (admin-fallback):** `bjorn@g-bit.be` / wachtwoord staat in `.env.local` (lokaal) en Vercel env vars
+- **Login: Microsoft-only in productie** (Entra ID, allowlist bjorn/gill/jarn@g-bit.be).
+  Wachtwoord-login bestaat enkel nog in lokale dev (`ADMIN_EMAIL`/`ADMIN_PASSWORD` in `.env.local`).
 
 ## Stack (allemaal nieuwe majors — let op breaking changes)
 Next.js 16 (App Router, Turbopack) · React 19 · Prisma 7 · PostgreSQL (Neon, **gedeeld dev+prod**) ·
@@ -66,5 +67,5 @@ via de API) — harde afspraak van Bjorn. Client: `src/lib/comanage.ts` (enkel G
 
 ## Secrets
 In `.env.local` (lokaal, git-ignored) en Vercel env vars. Nomeo = OAuth2 client-credentials (`api.nomeo.com`).
-De secrets zijn ooit in chat gedeeld → overweeg rotatie van Nomeo-secret + `AUTH_SECRET`. Admin-wachtwoord is
-zwak (publieke app) → versterk het in Vercel.
+De secrets zijn ooit in chat gedeeld → overweeg rotatie van Nomeo-secret + `AUTH_SECRET` +
+Entra-clientgeheim. Productie-login is Microsoft-only (2026-07-10); `ADMIN_*` is uit Vercel verwijderd.

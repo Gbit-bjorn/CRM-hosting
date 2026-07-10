@@ -202,6 +202,11 @@ Tests: 5 (billing, nomeo, sync) — `npm test`.
 - **CoManage-API afgetast** (2026-07-10): kent **geen** projecten/taken/timesheets — enkel contacts,
   customers, suppliers, invoices, **offers** (nieuw: `listOffers` in comanage.ts), creditnotes,
   products. Projectdata uit de CoManage web-app is dus niet via de API te spiegelen.
+- **Login is Microsoft-only in productie** (beslissing Bjorn, nu er klantwachtwoorden in de app
+  staan): Credentials-provider registreert enkel bij `NODE_ENV=development`; login-pagina toont
+  in productie alleen de Microsoft-knop. `ADMIN_EMAIL`/`ADMIN_PASSWORD` zijn uit Vercel verwijderd
+  (staan nog in `.env.local` voor lokale dev — Microsoft werkt lokaal pas na toevoegen van een
+  localhost-redirect-URI in Entra).
 - **Giuditta gekoppeld**: CRM-klant hernoemd naar "BV Panzetta Panzone (Giuditta)", comanageId 22,
   btw BE1019411008, adres + contact info@giuditta.be. Open vragen bij Bjorn: hoort het €105-
   factuurmoment (16 aug) apart of zit hosting al in het €125/maand-onderhoudscontract via CoManage?
