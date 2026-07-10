@@ -26,7 +26,11 @@ Neutrale grijsschaal als basis, coral spaarzaam. Semantische status = groen/ambe
 sticky headers, rechts-uitgelijnde tabulaire cijfers (`.tnum`), dot+label status. Basis: `docs/HANDOFF.md` §Design.
 
 ## Datamodel & pipeline
-Modellen: `Klant, Contact, Site, Domein, Abonnement, FactuurMoment` (zie `prisma/schema.prisma`).
+Modellen: `Klant, Contact, Site, Domein, Abonnement, FactuurMoment` + klantdossier
+`Project, ProjectNotitie, Account` (zie `prisma/schema.prisma` en `docs/superpowers/specs/2026-07-10-projecten-design.md`).
+- **Projecten** = naslagwerk per klant (notities/meetingverslagen/accounts), géén taakbeheer.
+  `Account.wachtwoord` staat als tekst in de DB (bewuste keuze Bjorn 2026-07-10); de UI verbergt
+  het (klik-om-te-tonen) en **het rapport-script geeft wachtwoorden nooit uit**.
 - **Eigen velden** (notities, prijzen, factuurstatus, klant-toewijzingen) worden **nooit** door de Nomeo-sync overschreven.
 - `Site` heeft `factuurKlant` (wie betaalt) + `eindKlant` (wie zit erachter).
 - Data-opbouw = 3 stappen: **seed** (`prisma/seed.ts`, uit `data/plesk-domains.json`) → **sync** (`prisma/sync-once.ts`, Nomeo, versmelt op domein) → **enrich** (`prisma/enrich.ts`: sites uit subscriptions, Bianca reseller, tarieven).
@@ -47,7 +51,7 @@ npm test               # Vitest (6 tests: billing, nomeo, sync)
 npm run build          # prisma generate && next build (productie)
 npm run db:seed        # seed uit data/*.json
 npm run db:enrich      # sites + Bianca + tarieven
-npm run rapport -- --help     # token-zuinige JSON-rapporten: radar, controle, klanten, klant <naam>
+npm run rapport -- --help     # token-zuinige JSON-rapporten: radar, controle, klanten, klant <naam>, projecten, project <naam>
 npx tsx prisma/sync-once.ts   # eenmalige Nomeo-sync vanaf CLI
 ```
 Data-JSON in `data/` (git-ignored) komt uit de Excel-exports in `C:\Hosting\` (converteer met openpyxl; zie HANDOFF).

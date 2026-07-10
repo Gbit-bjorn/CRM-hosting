@@ -28,6 +28,20 @@ enum LeverancierStatus {
   geregistreerd
 }
 
+// Projecten = klantdossier (naslagwerk), géén taakbeheer. Zie
+// docs/superpowers/specs/2026-07-10-projecten-design.md.
+enum ProjectStatus {
+  gepland
+  actief
+  gepauzeerd
+  afgerond
+}
+
+enum NotitieType {
+  notitie
+  verslag
+}
+
 model Klant {
   id                String            @id @default(cuid())
   naam              String            @unique
@@ -47,8 +61,56 @@ model Klant {
   beheerSites       Site[]            @relation("BeheerKlant")
   domeinen       Domein[]
   abonnementen   Abonnement[]
+  projecten      Project[]
+  accounts       Account[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+model Project {
+  id           String          @id @default(cuid())
+  naam         String
+  status       ProjectStatus   @default(actief)
+  omschrijving String?
+  startDatum   DateTime?
+  eindDatum    DateTime?
+  klant        Klant           @relation(fields: [klantId], references: [id], onDelete: Cascade)
+  klantId      String
+  notities     ProjectNotitie[]
+  accounts     Account[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model ProjectNotitie {
+  id        String      @id @default(cuid())
+  type      NotitieType @default(notitie)
+  titel     String
+  // Datum van de meeting/notitie zelf — los van wanneer ze werd ingetypt.
+  datum     DateTime
+  inhoud    String
+  auteur    String?
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+// Logins van de klant (site-admin, mailinglijst, ...). Hangt aan de klant
+// (logins overleven projecten), optioneel gelinkt aan een project.
+// Wachtwoord staat als tekst in de DB — bewuste keuze Bjorn (2026-07-10);
+// de UI toont het verborgen en het rapport-script geeft het NOOIT uit.
+model Account {
+  id             String   @id @default(cuid())
+  dienst         String
+  url            String?
+  gebruikersnaam String?
+  wachtwoord     String?
+  notitie        String?
+  klant          Klant    @relation(fields: [klantId], references: [id], onDelete: Cascade)
+  klantId        String
+  project        Project? @relation(fields: [projectId], references: [id])
+  projectId      String?
 }
 
 model Contact {

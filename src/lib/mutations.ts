@@ -14,6 +14,12 @@ function getal(fd: FormData, key: string): number | null {
   const n = Number(s.replace(",", "."));
   return isNaN(n) ? null : n;
 }
+function datumVeld(fd: FormData, key: string): Date | null {
+  const s = tekst(fd, key);
+  if (s == null) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 export async function updateKlant(id: string, fd: FormData) {
   await db.klant.update({
@@ -136,6 +142,121 @@ export async function verplaatsSite(id: string, klantId: string) {
   revalidatePath("/klanten");
   revalidatePath("/sites");
   revalidatePath("/");
+}
+
+/* ── Projecten (klantdossier) ─────────────────────────────────────────── */
+
+type ProjectStatus = "gepland" | "actief" | "gepauzeerd" | "afgerond";
+const projectStatus = (fd: FormData): ProjectStatus => {
+  const s = tekst(fd, "status");
+  return s === "gepland" || s === "gepauzeerd" || s === "afgerond" ? s : "actief";
+};
+
+export async function maakProject(klantId: string, fd: FormData) {
+  const naam = tekst(fd, "naam");
+  if (!naam) return;
+  const p = await db.project.create({ data: { klantId, naam, omschrijving: tekst(fd, "omschrijving") } });
+  revalidatePath(`/klanten/${klantId}`);
+  revalidatePath("/projecten");
+  redirect(`/projecten/${p.id}`);
+}
+
+export async function updateProject(id: string, fd: FormData) {
+  await db.project.update({
+    where: { id },
+    data: {
+      naam: tekst(fd, "naam") ?? "Onbekend",
+      status: projectStatus(fd),
+      omschrijving: tekst(fd, "omschrijving"),
+      startDatum: datumVeld(fd, "startDatum"),
+      eindDatum: datumVeld(fd, "eindDatum"),
+    },
+  });
+  revalidatePath(`/projecten/${id}`);
+  revalidatePath("/projecten");
+}
+
+/** Verwijdert project + notities (cascade); accounts blijven bij de klant staan. */
+export async function verwijderProject(id: string, klantId: string) {
+  await db.project.delete({ where: { id } });
+  revalidatePath("/projecten");
+  revalidatePath(`/klanten/${klantId}`);
+  redirect(`/klanten/${klantId}`);
+}
+
+export async function addNotitie(projectId: string, fd: FormData) {
+  const titel = tekst(fd, "titel");
+  const inhoud = tekst(fd, "inhoud");
+  if (!titel || !inhoud) return;
+  await db.projectNotitie.create({
+    data: {
+      projectId,
+      type: tekst(fd, "type") === "verslag" ? "verslag" : "notitie",
+      titel,
+      datum: datumVeld(fd, "datum") ?? new Date(),
+      inhoud,
+      auteur: tekst(fd, "auteur"),
+    },
+  });
+  revalidatePath(`/projecten/${projectId}`);
+}
+
+export async function updateNotitie(id: string, projectId: string, fd: FormData) {
+  await db.projectNotitie.update({
+    where: { id },
+    data: {
+      type: tekst(fd, "type") === "verslag" ? "verslag" : "notitie",
+      titel: tekst(fd, "titel") ?? "Zonder titel",
+      datum: datumVeld(fd, "datum") ?? new Date(),
+      inhoud: tekst(fd, "inhoud") ?? "",
+      auteur: tekst(fd, "auteur"),
+    },
+  });
+  revalidatePath(`/projecten/${projectId}`);
+}
+
+export async function deleteNotitie(id: string, projectId: string) {
+  await db.projectNotitie.delete({ where: { id } });
+  revalidatePath(`/projecten/${projectId}`);
+}
+
+/* ── Accounts (logins van de klant) ───────────────────────────────────── */
+
+export async function addAccount(klantId: string, fd: FormData) {
+  const dienst = tekst(fd, "dienst");
+  if (!dienst) return;
+  await db.account.create({
+    data: {
+      klantId,
+      dienst,
+      url: tekst(fd, "url"),
+      gebruikersnaam: tekst(fd, "gebruikersnaam"),
+      wachtwoord: tekst(fd, "wachtwoord"),
+      notitie: tekst(fd, "notitie"),
+      projectId: tekst(fd, "projectId"),
+    },
+  });
+  revalidatePath(`/klanten/${klantId}`);
+}
+
+export async function updateAccount(id: string, klantId: string, fd: FormData) {
+  await db.account.update({
+    where: { id },
+    data: {
+      dienst: tekst(fd, "dienst") ?? "Onbekend",
+      url: tekst(fd, "url"),
+      gebruikersnaam: tekst(fd, "gebruikersnaam"),
+      wachtwoord: tekst(fd, "wachtwoord"),
+      notitie: tekst(fd, "notitie"),
+      projectId: tekst(fd, "projectId"),
+    },
+  });
+  revalidatePath(`/klanten/${klantId}`);
+}
+
+export async function deleteAccount(id: string, klantId: string) {
+  await db.account.delete({ where: { id } });
+  revalidatePath(`/klanten/${klantId}`);
 }
 
 export async function updateSite(id: string, fd: FormData) {

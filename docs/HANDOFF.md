@@ -183,6 +183,30 @@ Tests: 5 (billing, nomeo, sync) — `npm test`.
   spamfilter-node. De "buiten Nomeo"-domeinen blijken grotendeels bij Nomeo te zitten onder een ander
   account (vermoedelijk Caspers oude) — overzetten via Nomeo-support.
 
+## 8c. Sessie 2026-07-10 — projecten-module (klantdossier)
+
+- **Projecten per klant** (ontwerp: `docs/superpowers/specs/2026-07-10-projecten-design.md`,
+  goedgekeurd door Bjorn): `Project` (status gepland/actief/gepauzeerd/afgerond, omschrijving,
+  start/eind) · `ProjectNotitie` (type notitie/**verslag**, titel, datum = meetingdatum, inhoud,
+  auteur) · `Account` (dienst, url, gebruikersnaam, wachtwoord, → Klant, optioneel → Project).
+  Migratie `projecten_accounts`. Naslagwerk, géén taakbeheer (bewuste scope-keuze).
+- **UI**: `/projecten` (overzicht + statusfilter) · `/projecten/[id]` (dossier: bewerken, notities/
+  verslagen chronologisch met toevoegen/bewerken/verwijderen, gekoppelde accounts, CoManage-context
+  met facturen + offertes van de klant) · klantpagina: secties "Projecten" en "Accounts &
+  wachtwoorden" (`WachtwoordVeld.tsx`: verborgen + toon/kopieer). Zijbalk: item "Projecten".
+- **Wachtwoorden: plaintext** in de DB — expliciete keuze van Bjorn na waarschuwing (publieke app,
+  gedeelde dev+prod-DB). UI verbergt ze; **rapport-script geeft ze nooit uit**. Versleuteling
+  (AES-GCM, key in Vercel env) kan later zonder dataverlies.
+- **Rapport**: `npm run rapport -- projecten` en `-- project <naam>` (dossier incl. notitie-inhoud);
+  `-- klant <naam>` toont nu ook projecten + accounts (zonder wachtwoord).
+- **CoManage-API afgetast** (2026-07-10): kent **geen** projecten/taken/timesheets — enkel contacts,
+  customers, suppliers, invoices, **offers** (nieuw: `listOffers` in comanage.ts), creditnotes,
+  products. Projectdata uit de CoManage web-app is dus niet via de API te spiegelen.
+- **Giuditta gekoppeld**: CRM-klant hernoemd naar "BV Panzetta Panzone (Giuditta)", comanageId 22,
+  btw BE1019411008, adres + contact info@giuditta.be. Open vragen bij Bjorn: hoort het €105-
+  factuurmoment (16 aug) apart of zit hosting al in het €125/maand-onderhoudscontract via CoManage?
+  En giuditta.be (pizzeria, €90/jaar Nomeo-inkoop, next due 2027-04-22) als site opnemen?
+
 ## 9. Refinement-backlog (volgende sessie)
 
 1. **Bianca opkuisen** — de 3 domein-only verifiëren/verplaatsen (kan nu via de UI: Domein → klant kiezen → Bewaren).

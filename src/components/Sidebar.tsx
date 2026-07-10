@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Globe, Server, ClipboardCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, FolderKanban, Globe, Server, ClipboardCheck, LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions";
 
 const items = [
   { href: "/", label: "Radar", icon: LayoutDashboard },
   { href: "/klanten", label: "Klanten", icon: Users },
+  { href: "/projecten", label: "Projecten", icon: FolderKanban },
   { href: "/domeinen", label: "Domeinen", icon: Globe },
   { href: "/sites", label: "Sites", icon: Server },
   { href: "/controle", label: "Controle", icon: ClipboardCheck },
@@ -65,7 +66,7 @@ export default function Sidebar() {
             </button>
           </form>
         </div>
-        <nav className="grid grid-cols-5">
+        <nav className="grid grid-cols-6">
           {items.map(({ href, label, icon: Icon }) => {
             const active = isActief(href);
             return (

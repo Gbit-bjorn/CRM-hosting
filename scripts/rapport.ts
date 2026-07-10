@@ -11,7 +11,11 @@ Rapporten:
   radar             KPI's + open factuurregels (te laat / deze maand / komende 90 dagen)
   controle          bronvergelijking CRM/Nomeo/CoManage (zonder VIES — die staat op /controle)
   klanten           alle klanten met aantallen en open bedrag
-  klant <zoekterm>  detail van één klant (contacten, domeinen, sites, abonnementen)
+  klant <zoekterm>  detail van één klant (contacten, domeinen, sites, abonnementen, projecten)
+  projecten         alle projecten (status, klant, aantallen)
+  project <zoekterm>  volledig dossier van één project, incl. notitie-inhoud
+
+Wachtwoorden van accounts verschijnen nooit in de output (enkel dienst + gebruikersnaam).
 
 Output: JSON. Bedragen excl. btw, datums YYYY-MM-DD. Zelfde reken-logica als de web-app
 (src/lib/billing.ts en src/lib/controle.ts).`;
@@ -194,6 +198,9 @@ async function klantRapport(zoek: string) {
       },
       beheerSites: { select: { naam: true, factuurKlant: { select: { naam: true } } } },
       abonnementen: { include: { factuurMomenten: { orderBy: { actieDatum: "asc" } } } },
+      projecten: { select: { naam: true, status: true, _count: { select: { notities: true } } } },
+      // Bewust zonder wachtwoord — deze JSON belandt in agent-/chatcontext.
+      accounts: { select: { dienst: true, gebruikersnaam: true } },
     },
   });
   if (!k) return { fout: `Geen klant gevonden voor "${zoek}". Zie het rapport "klanten" voor alle namen.` };
@@ -230,12 +237,69 @@ async function klantRapport(zoek: string) {
           sitesInBeheer: k.beheerSites.map((s) => ({ naam: s.naam, factuurKlant: s.factuurKlant.naam })),
         }
       : {}),
+    ...(k.projecten.length > 0
+      ? {
+          projecten: k.projecten.map((p) => ({ naam: p.naam, status: p.status, notities: p._count.notities })),
+        }
+      : {}),
+    ...(k.accounts.length > 0 ? { accounts: k.accounts } : {}),
     abonnementen: k.abonnementen.map((a) => ({
       betreft: a.omschrijving,
       jaarbedrag: a.jaarbedrag,
       vervalt: dag(a.renewalDate),
       momenten: a.factuurMomenten.map((m) => ({ actie: dag(m.actieDatum), bedrag: m.bedrag, status: m.status })),
     })),
+  };
+}
+
+async function projectenRapport() {
+  const { db } = await import("../src/lib/db");
+  const projecten = await db.project.findMany({
+    orderBy: { updatedAt: "desc" },
+    include: {
+      klant: { select: { naam: true } },
+      _count: { select: { notities: true, accounts: true } },
+      notities: { orderBy: { datum: "desc" }, take: 1, select: { datum: true } },
+    },
+  });
+  return projecten.map((p) => ({
+    naam: p.naam,
+    klant: p.klant.naam,
+    status: p.status,
+    ...(p.omschrijving ? { omschrijving: p.omschrijving } : {}),
+    notities: p._count.notities,
+    accounts: p._count.accounts,
+    laatsteNotitie: dag(p.notities[0]?.datum),
+  }));
+}
+
+async function projectRapport(zoek: string) {
+  const { db } = await import("../src/lib/db");
+  const p = await db.project.findFirst({
+    where: { naam: { contains: zoek, mode: "insensitive" } },
+    include: {
+      klant: { select: { naam: true } },
+      notities: { orderBy: { datum: "desc" } },
+      // Bewust zonder wachtwoord — deze JSON belandt in agent-/chatcontext.
+      accounts: { select: { dienst: true, url: true, gebruikersnaam: true, notitie: true } },
+    },
+  });
+  if (!p) return { fout: `Geen project gevonden voor "${zoek}". Zie het rapport "projecten" voor alle namen.` };
+  return {
+    naam: p.naam,
+    klant: p.klant.naam,
+    status: p.status,
+    omschrijving: p.omschrijving,
+    start: dag(p.startDatum),
+    eind: dag(p.eindDatum),
+    notities: p.notities.map((n) => ({
+      type: n.type,
+      titel: n.titel,
+      datum: dag(n.datum),
+      auteur: n.auteur,
+      inhoud: n.inhoud,
+    })),
+    accounts: p.accounts,
   };
 }
 
@@ -263,6 +327,16 @@ const [rapport, ...rest] = process.argv.slice(2);
         process.exit(2);
       }
       uit(await klantRapport(rest.join(" ")));
+      break;
+    case "projecten":
+      uit(await projectenRapport());
+      break;
+    case "project":
+      if (rest.length === 0) {
+        console.error('Geef een zoekterm mee: npm run rapport -- project "website"');
+        process.exit(2);
+      }
+      uit(await projectRapport(rest.join(" ")));
       break;
     default:
       console.error(`Onbekend rapport "${rapport}".\n\n${HELP}`);

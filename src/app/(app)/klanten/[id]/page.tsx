@@ -6,8 +6,16 @@ import { listClients } from "@/lib/nomeo";
 import BronVergelijking from "@/components/BronVergelijking";
 import { Badge } from "@/components/ui/Badge";
 import { Veld, veldKlasse, BewaarKnop } from "@/components/ui/form";
-import { updateKlant, addContact, deleteContact } from "@/lib/mutations";
+import {
+  updateKlant,
+  addContact,
+  deleteContact,
+  maakProject,
+  addAccount,
+  deleteAccount,
+} from "@/lib/mutations";
 import VerplaatsKnop from "@/components/VerplaatsKnop";
+import WachtwoordVeld from "@/components/WachtwoordVeld";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +39,11 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
         beheerSites: { orderBy: { naam: "asc" }, include: { factuurKlant: true } },
         domeinen: { orderBy: { naam: "asc" } },
         abonnementen: true,
+        projecten: {
+          orderBy: { updatedAt: "desc" },
+          include: { _count: { select: { notities: true } } },
+        },
+        accounts: { orderBy: { dienst: "asc" }, include: { project: { select: { naam: true } } } },
       },
     }),
     db.klant.findMany({ orderBy: { naam: "asc" }, select: { id: true, naam: true } }),
@@ -138,6 +151,75 @@ export default async function KlantDetail({ params }: { params: Promise<{ id: st
           <input name="email" placeholder="E-mail" className={`${veldKlasse} w-52`} />
           <input name="telefoon" placeholder="Telefoon" className={`${veldKlasse} w-36`} />
           <input name="rol" placeholder="Rol" className={`${veldKlasse} w-28`} />
+          <button className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50">
+            Toevoegen
+          </button>
+        </form>
+      </Paneel>
+
+      <Paneel titel={`Projecten (${k.projecten.length})`}>
+        <ul className="mb-3 space-y-1.5 text-sm">
+          {k.projecten.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <Link href={`/projecten/${p.id}`} className="text-coral-hover hover:underline">
+                {p.naam}
+              </Link>
+              <Badge
+                soort={p.status === "actief" ? "ok" : p.status === "gepauzeerd" ? "warn" : p.status === "gepland" ? "idle" : "domein"}
+              >
+                {p.status}
+              </Badge>
+              <span className="tnum text-neutral-500">{p._count.notities} notitie(s)</span>
+            </li>
+          ))}
+          {k.projecten.length === 0 && <li className="text-neutral-400">Nog geen projecten.</li>}
+        </ul>
+        <form action={maakProject.bind(null, k.id)} className="flex flex-wrap items-end gap-2">
+          <input name="naam" placeholder="Nieuw project" className={`${veldKlasse} w-56`} />
+          <button className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50">
+            Aanmaken
+          </button>
+        </form>
+      </Paneel>
+
+      <Paneel titel={`Accounts & wachtwoorden (${k.accounts.length})`}>
+        <ul className="mb-3 space-y-1.5 text-sm text-neutral-700">
+          {k.accounts.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-medium">{a.dienst}</span>
+              {a.url && (
+                <a href={a.url} target="_blank" rel="noreferrer" className="text-coral-hover hover:underline">
+                  openen
+                </a>
+              )}
+              {a.gebruikersnaam && <span className="text-neutral-500">{a.gebruikersnaam}</span>}
+              {a.wachtwoord && <WachtwoordVeld waarde={a.wachtwoord} />}
+              {a.project && <span className="text-xs text-neutral-400">· {a.project.naam}</span>}
+              {a.notitie && <span className="text-xs text-neutral-400">· {a.notitie}</span>}
+              <form action={deleteAccount.bind(null, a.id, k.id)} className="ml-auto">
+                <button className="text-neutral-400 hover:text-bad-text" aria-label="Verwijder account">
+                  <Trash2 size={14} />
+                </button>
+              </form>
+            </li>
+          ))}
+          {k.accounts.length === 0 && <li className="text-neutral-400">Nog geen accounts.</li>}
+        </ul>
+        <form action={addAccount.bind(null, k.id)} className="flex flex-wrap items-end gap-2">
+          <input name="dienst" placeholder="Dienst (bv. WordPress admin)" className={`${veldKlasse} w-52`} />
+          <input name="url" placeholder="URL" className={`${veldKlasse} w-44`} />
+          <input name="gebruikersnaam" placeholder="Gebruikersnaam" className={`${veldKlasse} w-40`} />
+          <input name="wachtwoord" placeholder="Wachtwoord" className={`${veldKlasse} w-36`} />
+          {k.projecten.length > 0 && (
+            <select name="projectId" defaultValue="" className={`${veldKlasse} w-44`}>
+              <option value="">— geen project —</option>
+              {k.projecten.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.naam}
+                </option>
+              ))}
+            </select>
+          )}
           <button className="rounded-md border border-neutral-200 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50">
             Toevoegen
           </button>

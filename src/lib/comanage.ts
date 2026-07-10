@@ -70,9 +70,24 @@ async function getAll<T>(path: string): Promise<T[]> {
   return alles;
 }
 
+// Offertes — zelfde vorm als facturen (de API kent geen projecten/taken;
+// offertes + facturen zijn de nuttigste projectcontext die CoManage biedt).
+export type CoOffer = {
+  number: number;
+  offer_number?: string | null;
+  title?: string | null;
+  status?: string | null;
+  date?: string | null;
+  totals?: { total_ex_vat?: number; total?: number };
+  contact?: CoContact | null;
+  trashed?: boolean;
+  [key: string]: unknown;
+};
+
 export const listContacts = () => getAll<CoContact>("/contacts");
 export const listCustomers = () => getAll<CoContact>("/customers");
 export const listInvoices = () => getAll<CoInvoice>("/invoices");
+export const listOffers = () => getAll<CoOffer>("/offers");
 
 /** Eén contact ophalen op CoManage-nummer (= Klant.comanageId). */
 export async function getContact(number: string | number): Promise<CoContact> {
