@@ -16,6 +16,7 @@ type Rij = {
   klant: string;
   leverancierStatus: string;
   betreft: string;
+  domeinId: string | null;
   detail: string;
   bedrag: number;
   actieDatum: Date;
@@ -64,8 +65,22 @@ function Kaartjes({ rijen }: { rijen: Rij[] }) {
         <div key={r.id} className="rounded-lg border border-neutral-200 bg-white p-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-neutral-800">{r.klant}</p>
-              <p className="text-sm text-neutral-600">{r.betreft}</p>
+              <Link
+                href={`/klanten/${r.klantId}`}
+                className="block text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline"
+              >
+                {r.klant}
+              </Link>
+              {r.domeinId ? (
+                <Link
+                  href={`/domeinen/${r.domeinId}`}
+                  className="block text-sm text-neutral-600 hover:text-coral-hover hover:underline"
+                >
+                  {r.betreft}
+                </Link>
+              ) : (
+                <p className="text-sm text-neutral-600">{r.betreft}</p>
+              )}
               {r.detail && <p className="mt-0.5 text-xs text-neutral-400">{r.detail}</p>}
             </div>
             <p className="tnum shrink-0 text-sm font-semibold text-charcoal">€{r.bedrag.toFixed(2)}</p>
@@ -127,7 +142,9 @@ function Lijst({
               <tr key={r.id} className={tbl.tr}>
                 <td className={tbl.tdName}>
                   <span className="inline-flex items-center gap-2">
-                    {r.klant}
+                    <Link href={`/klanten/${r.klantId}`} className={tbl.rowLink}>
+                      {r.klant}
+                    </Link>
                     {registratieBlokkeert(r.leverancierStatus) && (
                       <Badge soort="warn">eerst leveranciersregistratie</Badge>
                     )}
@@ -135,7 +152,16 @@ function Lijst({
                 </td>
                 <td className={tbl.td}>
                   <span className="inline-flex items-center gap-2">
-                    {r.betreft}
+                    {r.domeinId ? (
+                      <Link
+                        href={`/domeinen/${r.domeinId}`}
+                        className="relative hover:text-coral-hover hover:underline"
+                      >
+                        {r.betreft}
+                      </Link>
+                    ) : (
+                      r.betreft
+                    )}
                     {r.domeinVervallen && <Badge soort="bad">domein vervallen — niet factureren</Badge>}
                   </span>
                   {r.detail && <span className="block text-xs text-neutral-400">{r.detail}</span>}
@@ -144,7 +170,9 @@ function Lijst({
                 <td className={tbl.tdNum}>{r.renewalDate.toISOString().slice(0, 10)}</td>
                 <td className={tbl.tdNum}>€{r.bedrag.toFixed(2)}</td>
                 <td className={tbl.tdNum}>
-                  <FactuurKnop id={r.id} status={r.status} />
+                  <span className="relative inline-block">
+                    <FactuurKnop id={r.id} status={r.status} />
+                  </span>
                 </td>
               </tr>
             ))}
@@ -266,7 +294,7 @@ export default async function Radar() {
       orderBy: { actieDatum: "asc" },
     }),
     db.site.findMany({ select: { naam: true, hostingprijs: true } }),
-    db.domein.findMany({ select: { naam: true, tld: true, verkoopPrijs: true, registratieStatus: true } }),
+    db.domein.findMany({ select: { id: true, naam: true, tld: true, verkoopPrijs: true, registratieStatus: true } }),
   ]);
 
   // Abonnement, site en domein delen dezelfde naam (het domein) — zo
@@ -288,6 +316,7 @@ export default async function Radar() {
       klant: m.abonnement.klant.naam,
       leverancierStatus: m.abonnement.klant.leverancierStatus,
       betreft: naam,
+      domeinId: domein?.id ?? null,
       detail: delen.join(" + "),
       bedrag: m.bedrag,
       actieDatum: m.actieDatum,

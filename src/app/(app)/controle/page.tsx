@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { ChevronRight, ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
 import { comanageActief, listContacts } from "@/lib/comanage";
 import { listClients, type NomeoClient } from "@/lib/nomeo";
@@ -25,51 +25,95 @@ function Kpi({ label, waarde, slecht }: { label: string; waarde: number; slecht?
   );
 }
 
+/**
+ * Inklapbare sectie (native details/summary — geen client-JS nodig).
+ * Bij 0 items valt er niets open te klappen en tonen we meteen de ok-regel.
+ * `kaal` laat de children hun eigen kaders tekenen (bv. de VIES-sectie).
+ */
 function Sectie({
   titel,
   aantal,
   sub,
+  standaardOpen,
+  kaal,
+  leegTekst = "Niets gevonden — in orde.",
   children,
 }: {
   titel: string;
   aantal: number;
   sub: string;
+  standaardOpen?: boolean;
+  kaal?: boolean;
+  leegTekst?: string;
   children: React.ReactNode;
 }) {
-  return (
-    <section>
-      <h2 className="text-sm font-semibold text-neutral-700">
-        {titel} <span className="tnum font-normal text-neutral-400">({aantal})</span>
-      </h2>
-      <p className="mb-2 mt-0.5 text-xs text-neutral-500">{sub}</p>
-      {aantal === 0 ? (
+  if (aantal === 0) {
+    return (
+      <section>
+        <h2 className="pl-5 text-sm font-semibold text-neutral-700">
+          {titel} <span className="tnum font-normal text-neutral-400">(0)</span>
+        </h2>
+        <p className="mb-2 mt-0.5 pl-5 text-xs text-neutral-500">{sub}</p>
         <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5">
-          <StatusDot tone="ok">Niets gevonden — in orde.</StatusDot>
+          <StatusDot tone="ok">{leegTekst}</StatusDot>
         </div>
-      ) : (
-        <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
-          {children}
-        </div>
-      )}
-    </section>
+      </section>
+    );
+  }
+  return (
+    <details className="group" open={standaardOpen}>
+      <summary className="cursor-pointer select-none list-none rounded-md -mx-1 px-1 hover:bg-neutral-50 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-1.5">
+          <ChevronRight
+            size={14}
+            className="shrink-0 text-neutral-400 transition-transform group-open:rotate-90"
+          />
+          <h2 className="text-sm font-semibold text-neutral-700">
+            {titel} <span className="tnum font-normal text-neutral-400">({aantal})</span>
+          </h2>
+        </span>
+        <span className="mt-0.5 block pl-5 text-xs text-neutral-500">{sub}</span>
+      </summary>
+      <div className="mt-2">
+        {kaal ? (
+          children
+        ) : (
+          <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
+            {children}
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 
-function KlantLink({ id, naam }: { id: string; naam: string }) {
+// `stretch` maakt de hele rij klikbaar (rij is relative) — zelfde patroon als
+// tbl.rowLink; knoppen/links verderop in de rij krijgen `relative` en blijven
+// zo boven de overlay klikbaar.
+function KlantLink({ id, naam, stretch }: { id: string; naam: string; stretch?: boolean }) {
   return (
-    <Link href={`/klanten/${id}`} className="text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline">
+    <Link
+      href={`/klanten/${id}`}
+      className={`text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline ${stretch ? "after:absolute after:inset-0" : ""}`}
+    >
       {naam}
     </Link>
   );
 }
 
-function DomeinLink({ id, naam }: { id: string; naam: string }) {
+function DomeinLink({ id, naam, stretch }: { id: string; naam: string; stretch?: boolean }) {
   return (
-    <Link href={`/domeinen/${id}`} className="text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline">
+    <Link
+      href={`/domeinen/${id}`}
+      className={`text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline ${stretch ? "after:absolute after:inset-0" : ""}`}
+    >
       {naam}
     </Link>
   );
 }
+
+// Rij in een sectie-kaart: relative voor de stretched link + subtiele hover.
+const rij = "relative flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 hover:bg-neutral-50";
 
 /** VIES-validatie, gestreamd. Toont enkel afwijkingen; de rest wordt samengevat. */
 async function ViesSectie({ items }: { items: { klant: KlantRij; btw: string }[] }) {
@@ -94,8 +138,8 @@ async function ViesSectie({ items }: { items: { klant: KlantRij; btw: string }[]
       {problemen.length > 0 && (
         <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
           {problemen.map((x) => (
-            <div key={x.klant.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-              <KlantLink id={x.klant.id} naam={x.klant.naam} />
+            <div key={x.klant.id} className={rij}>
+              <KlantLink id={x.klant.id} naam={x.klant.naam} stretch />
               <span className="tnum text-sm text-neutral-500">{x.btw}</span>
               <span className="ml-auto">
                 {x.r === null ? (
@@ -210,6 +254,7 @@ export default async function Controle() {
         titel="Conflicten"
         aantal={conflicten.length}
         sub="De systemen spreken elkaar tegen — kies per geval welke waarde het CRM krijgt."
+        standaardOpen
       >
         {conflicten.map((c) => (
           <div key={`${c.klant.id}-${c.veld}`} className="px-3 py-3">
@@ -248,15 +293,12 @@ export default async function Controle() {
         sub="Het CRM is leeg terwijl een bron de waarde kent — geen conflict, wel een gaatje."
       >
         {aanTeVullen.map((a) => (
-          <div
-            key={`${a.klant.id}-${a.veld}`}
-            className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5"
-          >
-            <KlantLink id={a.klant.id} naam={a.klant.naam} />
+          <div key={`${a.klant.id}-${a.veld}`} className={rij}>
+            <KlantLink id={a.klant.id} naam={a.klant.naam} stretch />
             <span className="text-sm text-neutral-500">
               {a.label}: <span className="text-neutral-700">{a.waarde}</span>
             </span>
-            <span className="ml-auto">
+            <span className="relative ml-auto">
               <OverneemKnop klantId={a.klant.id} veld={a.veld} waarde={a.waarde} />
             </span>
           </div>
@@ -269,8 +311,8 @@ export default async function Controle() {
         sub="Nog geen klant in de boekhouding — handmatig aanmaken in CoManage vóór je factureert. Gesorteerd op wat er open staat: bovenaan is het dringendst."
       >
         {nietGekoppeld.map((k) => (
-          <div key={k.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-            <KlantLink id={k.id} naam={k.naam} />
+          <div key={k.id} className={rij}>
+            <KlantLink id={k.id} naam={k.naam} stretch />
             <span className="ml-auto">
               {k.open.bedrag > 0 ? (
                 <span className="tnum text-sm text-neutral-700">
@@ -293,13 +335,8 @@ export default async function Controle() {
         sub="Niet in het Nomeo-portfolio — de vervaldatum komt uit de oude Plesk-export en wordt niet ververst. Uitzoeken waar deze geregistreerd zijn."
       >
         {losseDomeinen.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-            <Link
-              href={`/domeinen/${d.id}`}
-              className="text-sm font-medium text-neutral-800 hover:text-coral-hover hover:underline"
-            >
-              {d.naam}
-            </Link>
+          <div key={d.id} className={rij}>
+            <DomeinLink id={d.id} naam={d.naam} stretch />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
             <span className="tnum ml-auto text-xs text-neutral-400">
               {d.expireDate ? `Plesk-datum ${d.expireDate.toISOString().slice(0, 10)}` : "geen datum"}
@@ -324,11 +361,11 @@ export default async function Controle() {
         sub="Whois zegt AVAILABLE: registratie is echt weg. Schrap de openstaande factuurregels — dit valt niet meer te verlengen of factureren."
       >
         {tech.vervallen.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2.5">
-            <DomeinLink id={d.id} naam={d.naam} />
+          <div key={d.id} className={rij}>
+            <DomeinLink id={d.id} naam={d.naam} stretch />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
             <StatusDot tone="bad">vrijgekomen</StatusDot>
-            <span className="ml-auto">
+            <span className="relative ml-auto">
               {openPerDomein.has(d.naam) ? (
                 <SchrapKnop domeinNaam={d.naam} bedrag={openPerDomein.get(d.naam) ?? 0} />
               ) : (
@@ -345,8 +382,8 @@ export default async function Controle() {
         sub="Er bestaat een hosting-site in het CRM, maar het domein wijst naar een andere server. Verhuisd of stopgezet? Beslis: facturatie schrappen of terughalen."
       >
         {tech.eldersMetHosting.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-            <DomeinLink id={d.id} naam={d.naam} />
+          <div key={d.id} className={rij}>
+            <DomeinLink id={d.id} naam={d.naam} stretch />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
             <span className="ml-auto text-xs text-neutral-400">{d.liveWaar ?? "elders"} · HTTP {d.httpStatus ?? "?"}</span>
           </div>
@@ -359,8 +396,8 @@ export default async function Controle() {
         sub="Het domein wijst naar onze Plesk, maar er is geen hosting-site in het CRM. Mogelijk gratis meeliftend — of een alias/doorverwijzing naar een andere site."
       >
         {tech.bijOnsZonderSite.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-            <DomeinLink id={d.id} naam={d.naam} />
+          <div key={d.id} className={rij}>
+            <DomeinLink id={d.id} naam={d.naam} stretch />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
             <span className="ml-auto text-xs text-neutral-400">{d.cms ?? ""} · HTTP {d.httpStatus ?? "?"}</span>
           </div>
@@ -373,8 +410,8 @@ export default async function Controle() {
         sub="Wijst naar onze Plesk maar antwoordt niet met HTTP 200 — kapotte of lege site."
       >
         {tech.kapotBijOns.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-            <DomeinLink id={d.id} naam={d.naam} />
+          <div key={d.id} className={rij}>
+            <DomeinLink id={d.id} naam={d.naam} stretch />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
             <span className="ml-auto"><StatusDot tone="warn">HTTP {d.httpStatus}</StatusDot></span>
           </div>
@@ -387,21 +424,20 @@ export default async function Controle() {
         sub="Bij deze domeinen staat EDU-TECH of Casper nog als registrant/whois/admin-contact in Nomeo. Aanpassen doe je in het Nomeo-portaal."
       >
         {tech.verouderdContact.map((d) => (
-          <div key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-            <DomeinLink id={d.id} naam={d.naam} />
+          <div key={d.id} className={rij}>
+            <DomeinLink id={d.id} naam={d.naam} stretch />
             <span className="text-sm text-neutral-500">{d.klant?.naam ?? "—"}</span>
           </div>
         ))}
       </Sectie>
 
-      <section>
-        <h2 className="text-sm font-semibold text-neutral-700">
-          Btw-validatie via VIES <span className="tnum font-normal text-neutral-400">({metBtw.length})</span>
-        </h2>
-        <p className="mb-2 mt-0.5 text-xs text-neutral-500">
-          Officiële EU-controle. Vzw's en scholen zijn vaak niet btw-plichtig — hun ondernemingsnummer is dan
-          wél correct, maar niet btw-actief.
-        </p>
+      <Sectie
+        titel="Btw-validatie via VIES"
+        aantal={metBtw.length}
+        sub="Officiële EU-controle. Vzw's en scholen zijn vaak niet btw-plichtig — hun ondernemingsnummer is dan wél correct, maar niet btw-actief."
+        kaal
+        leegTekst="Geen btw-nummers in het CRM om te controleren."
+      >
         <Suspense
           fallback={
             <p className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-400">
@@ -411,7 +447,7 @@ export default async function Controle() {
         >
           <ViesSectie items={metBtw} />
         </Suspense>
-      </section>
+      </Sectie>
 
       <Sectie
         titel="Zonder btw-nummer"
@@ -421,9 +457,9 @@ export default async function Controle() {
         {zonderBtw.map((k) => {
           const zoeknaam = k.naam.split(" - ")[0];
           return (
-            <div key={k.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-              <KlantLink id={k.id} naam={k.naam} />
-              <span className="ml-auto inline-flex items-center gap-3 text-xs">
+            <div key={k.id} className={rij}>
+              <KlantLink id={k.id} naam={k.naam} stretch />
+              <span className="relative ml-auto inline-flex items-center gap-3 text-xs">
                 <a
                   href={`https://kbopub.economie.fgov.be/kbopub/zoeknaamfonetischform.html?searchWord=${encodeURIComponent(zoeknaam)}&_oudeZoekTot=true`}
                   target="_blank"

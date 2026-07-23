@@ -12,6 +12,7 @@ Rapporten:
   controle          bronvergelijking CRM/Nomeo/CoManage (zonder VIES — die staat op /controle)
   klanten           alle klanten met aantallen en open bedrag
   klant <zoekterm>  detail van één klant (contacten, domeinen, sites, abonnementen, projecten)
+  notities          alle ingevulde notities (klanten, domeinen, sites, projectnotities)
   projecten         alle projecten (status, klant, aantallen)
   project <zoekterm>  volledig dossier van één project, incl. notitie-inhoud
 
@@ -252,6 +253,39 @@ async function klantRapport(zoek: string) {
   };
 }
 
+async function notitiesRapport() {
+  const { db } = await import("../src/lib/db");
+  const [klanten, domeinen, sites, projectNotities] = await Promise.all([
+    db.klant.findMany({ where: { notities: { not: null } }, select: { naam: true, notities: true } }),
+    db.domein.findMany({
+      where: { notities: { not: null } },
+      select: { naam: true, notities: true, klant: { select: { naam: true } } },
+    }),
+    db.site.findMany({
+      where: { notities: { not: null } },
+      select: { naam: true, notities: true, factuurKlant: { select: { naam: true } } },
+    }),
+    db.projectNotitie.findMany({
+      orderBy: { datum: "desc" },
+      select: { titel: true, type: true, datum: true, auteur: true, inhoud: true, project: { select: { naam: true, klant: { select: { naam: true } } } } },
+    }),
+  ]);
+  return {
+    klanten: klanten.map((k) => ({ klant: k.naam, notities: k.notities })),
+    domeinen: domeinen.map((d) => ({ domein: d.naam, klant: d.klant?.naam ?? null, notities: d.notities })),
+    sites: sites.map((s) => ({ site: s.naam, klant: s.factuurKlant.naam, notities: s.notities })),
+    projectNotities: projectNotities.map((n) => ({
+      project: n.project.naam,
+      klant: n.project.klant.naam,
+      type: n.type,
+      titel: n.titel,
+      datum: dag(n.datum),
+      auteur: n.auteur,
+      inhoud: n.inhoud,
+    })),
+  };
+}
+
 async function projectenRapport() {
   const { db } = await import("../src/lib/db");
   const projecten = await db.project.findMany({
@@ -327,6 +361,9 @@ const [rapport, ...rest] = process.argv.slice(2);
         process.exit(2);
       }
       uit(await klantRapport(rest.join(" ")));
+      break;
+    case "notities":
+      uit(await notitiesRapport());
       break;
     case "projecten":
       uit(await projectenRapport());
