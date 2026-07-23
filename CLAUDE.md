@@ -54,7 +54,18 @@ npm run db:seed        # seed uit data/*.json
 npm run db:enrich      # sites + Bianca + tarieven
 npm run rapport -- --help     # token-zuinige JSON-rapporten: radar, controle, klanten, klant <naam>, projecten, project <naam>
 npx tsx prisma/sync-once.ts   # eenmalige Nomeo-sync vanaf CLI
+npx tsx prisma/portal-account.ts <email> <klant>  # reseller-portal-account aanmaken/wachtwoord resetten
+npx tsx prisma/check-elementor.ts                 # Elementor(-Pro)-scan → Domein.elementorPro
 ```
+
+## Reseller-portaal (/portal)
+Klantgericht read-only portaal (nu voor Bianca): abonnementen + prijzen + vervaldata +
+factuurstatus, sites-in-beheer, Elementor Pro-lijst. **Eigen login, volledig los van de
+interne Auth.js-auth** — een portal-sessie (`portal_sessie`-cookie, HMAC via `AUTH_SECRET`)
+geeft nooit toegang tot het CRM. Code: `src/app/portal/`, `src/lib/portal-auth.ts` /
+`portal-actions.ts` / `portal-wachtwoord.ts` (scrypt). Toont enkel verkoopprijzen en eigen
+klantdata — nooit inkoopprijzen of interne notities.
+
 Data-JSON in `data/` (git-ignored) komt uit de Excel-exports in `C:\Hosting\` (converteer met openpyxl; zie HANDOFF).
 
 **Data lezen/analyseren? Gebruik `npm run rapport -- <rapport>`** (kale JSON, zelfde reken-logica
