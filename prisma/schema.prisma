@@ -63,8 +63,24 @@ model Klant {
   abonnementen   Abonnement[]
   projecten      Project[]
   accounts       Account[]
+  portalAccounts PortalAccount[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+// Login voor het reseller-portaal (/portal) — volledig gescheiden van de
+// interne Auth.js-login: een portal-sessie geeft NOOIT toegang tot het CRM.
+// Wachtwoord = scrypt-hash (salt:hash), zie src/lib/portal-auth.ts.
+model PortalAccount {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  wachtwoordHash String
+  actief         Boolean   @default(true)
+  laatsteLogin   DateTime?
+  klant          Klant     @relation(fields: [klantId], references: [id], onDelete: Cascade)
+  klantId        String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Project {
@@ -158,6 +174,7 @@ model Domein {
   opOnzeServer      Boolean?
   httpStatus        String?   // statuscode of "onbereikbaar"
   cms               String?   // bv. "WordPress 6.7"
+  elementorPro      Boolean?  // prisma/check-elementor.ts: draait de site op Elementor Pro?
   registratieStatus String?   // whois/RDAP: AVAILABLE = vervallen én weer vrij
   registrar         String?   // whois/RDAP: waar het domein geregistreerd is (enkel buiten ons Nomeo)
   laatsteLiveCheck  DateTime?
