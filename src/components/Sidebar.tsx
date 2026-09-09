@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, FolderKanban, Globe, Server, ClipboardCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, FolderKanban, Globe, Server, ClipboardCheck, ListChecks, LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/actions";
 
 const items = [
@@ -11,6 +11,8 @@ const items = [
   { href: "/domeinen", label: "Domeinen", icon: Globe },
   { href: "/sites", label: "Sites", icon: Server },
   { href: "/controle", label: "Controle", icon: ClipboardCheck },
+  // Tijdelijk voor de opkuisronde van september 2026 — zie src/lib/ronde.ts.
+  { href: "/facturatieronde", label: "Facturatieronde", icon: ListChecks },
 ];
 
 export default function Sidebar() {
