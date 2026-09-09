@@ -393,6 +393,79 @@ export function bouwDossiers(inv: Invoer): Dossier[] {
 }
 
 /** Alleen dit wordt bewaard: wat het CRM niet uit de eigen data kan afleiden. */
+// ---- Invulblad voor CoManage: alles wat je nodig hebt om een klant aan te maken ----
+
+export type CoManageRij = {
+  id: string;
+  naam: string;
+  btw: string;
+  btwBron: "CRM" | "Nomeo" | "";
+  adres: string;
+  adresBron: "CRM" | "Nomeo" | "";
+  contact: string;
+  email: string;
+  telefoon: string;
+  openBedrag: number;
+  openRegels: number;
+  publiek: boolean;
+};
+
+export type KlantVoorCoManage = KlantVol & {
+  stad: string | null;
+  postcode: string | null;
+  contactenVol: { naam: string; email: string | null; telefoon: string | null }[];
+};
+
+/** Nomeo vult aan wat het CRM niet heeft — die klanten staan per definitie niet in CoManage. */
+export function bouwComanageLijst(
+  klanten: KlantVoorCoManage[],
+  nomeoKlanten: NomeoKlantRij[] | null,
+  openPerKlant: Map<string, { bedrag: number; regels: number }>,
+): CoManageRij[] {
+  const nomeoOp = new Map((nomeoKlanten ?? []).map((c) => [c.id, c]));
+
+  return klanten
+    .map((k): CoManageRij => {
+      const n = nomeoOp.get(k.nomeoId ?? "");
+      const crmAdres = [k.adres, [k.postcode, k.stad].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+      const nomeoAdres = n
+        ? [n.address, [n.zipcode, n.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")
+        : "";
+      const c = k.contactenVol.find((x) => x.email) ?? k.contactenVol[0];
+      const open = openPerKlant.get(k.id) ?? { bedrag: 0, regels: 0 };
+
+      return {
+        id: k.id,
+        naam: k.naam,
+        btw: k.vatNumber || n?.vat_number || "",
+        btwBron: k.vatNumber ? "CRM" : n?.vat_number ? "Nomeo" : "",
+        adres: crmAdres || nomeoAdres,
+        adresBron: crmAdres ? "CRM" : nomeoAdres ? "Nomeo" : "",
+        contact: c?.naam || n?.name || "",
+        email: c?.email || n?.email || "",
+        telefoon: c?.telefoon || n?.phone || "",
+        openBedrag: open.bedrag,
+        openRegels: open.regels,
+        publiek: PUBLIEK.test(k.naam) || k.leverancierStatus !== "nvt",
+      };
+    })
+    .sort((a, b) => b.openBedrag - a.openBedrag || a.naam.localeCompare(b.naam, "nl"));
+}
+
+export type NomeoKlantRij = {
+  id: string;
+  vat_number?: string | null;
+  address?: string | null;
+  zipcode?: string | null;
+  city?: string | null;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+};
+
+export const ontbreekt = (r: CoManageRij) =>
+  [!r.btw && "btw-nummer", !r.adres && "adres", !r.email && "e-mailadres"].filter(Boolean) as string[];
+
 export type Merk = { reden: string; door: string; op: string };
 
 /** Wat een mens over één punt kwijt wil. Alle drie de velden zijn onafhankelijk. */

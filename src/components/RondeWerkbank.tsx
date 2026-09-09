@@ -1,7 +1,8 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, Plus, RotateCw } from "lucide-react";
+import Link from "next/link";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Plus, RotateCw } from "lucide-react";
 import {
   eigenSleutel,
   legeStand,
@@ -144,6 +145,12 @@ export default function RondeWerkbank({
         <span className="tnum text-sm text-neutral-500">
           {klaarTotaal} van {dossiers.length} klanten afgewerkt
         </span>
+        <Link
+          href="/facturatieronde/comanage"
+          className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-600 transition hover:bg-neutral-50"
+        >
+          <ClipboardList size={14} /> Aan te maken in CoManage
+        </Link>
         <button
           onClick={() => {
             setVernieuwt(true);

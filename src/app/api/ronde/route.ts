@@ -11,7 +11,8 @@ type Body =
   | { actie: "eigen-verwijderen"; klantId: string; id: string }
   | { actie: "bevindingen"; klantId: string; tekst: string }
   | { actie: "afgewerkt"; klantId: string; aan: boolean }
-  | { actie: "factuur"; klantId: string; momentId: string; gefactureerd: boolean };
+  | { actie: "factuur"; klantId: string; momentId: string; gefactureerd: boolean }
+  | { actie: "comanage-id"; klantId: string; comanageId: string };
 
 async function bewaar(klantId: string, wijzig: (s: Stand) => Stand) {
   const key = rondeSleutel(klantId);
@@ -105,6 +106,15 @@ export async function POST(req: Request) {
         ),
       );
       break;
+
+    case "comanage-id": {
+      const nummer = body.comanageId.trim();
+      await db.klant.update({
+        where: { id: body.klantId },
+        data: { comanageId: nummer || null },
+      });
+      break;
+    }
 
     default:
       return Response.json({ error: "onbekende actie" }, { status: 400 });
