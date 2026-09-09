@@ -152,16 +152,45 @@ describe("te factureren", () => {
 });
 
 describe("leesStand", () => {
+  const merk = { reden: "particulier", door: "gill@g-bit.be", op: "2026-09-09T10:00:00Z" };
+
   it("geeft een lege stand bij ontbrekende of kapotte JSON", () => {
     expect(leesStand(null)).toEqual(legeStand());
     expect(leesStand("{kapot")).toEqual(legeStand());
   });
 
-  it("leest een bewaarde afhandeling terug", () => {
+  it("leest afhandeling, betwisting en opmerking van één punt terug", () => {
     const s = leesStand(
-      JSON.stringify({ afgehandeld: { "geg:btw": { reden: "particulier", door: "gill@g-bit.be", op: "2026-09-09T10:00:00Z" } } }),
+      JSON.stringify({
+        punten: {
+          "geg:btw": { afgehandeld: merk },
+          "geg:adres": {
+            betwist: { ...merk, reden: "adres van de vorige zaakvoerder" },
+            opmerking: { tekst: "nieuw adres opgevraagd", door: "jarn@g-bit.be", op: merk.op },
+          },
+        },
+      }),
     );
-    expect(s.afgehandeld["geg:btw"].door).toBe("gill@g-bit.be");
+    expect(s.punten["geg:btw"].afgehandeld?.door).toBe("gill@g-bit.be");
+    expect(s.punten["geg:adres"].betwist?.reden).toBe("adres van de vorige zaakvoerder");
+    expect(s.punten["geg:adres"].opmerking?.tekst).toBe("nieuw adres opgevraagd");
     expect(s.bevindingen).toBe("");
+  });
+
+  it("leest eigen punten terug", () => {
+    const s = leesStand(
+      JSON.stringify({
+        eigen: [{ id: "a1", blok: "factuur", titel: "factuur 2025 uitklaren", door: "bjorn@g-bit.be", op: merk.op }],
+      }),
+    );
+    expect(s.eigen).toHaveLength(1);
+    expect(s.eigen[0].titel).toBe("factuur 2025 uitklaren");
+  });
+
+  it("neemt de platte afgehandeld-map van de eerste versie over", () => {
+    const s = leesStand(JSON.stringify({ afgehandeld: { "geg:btw": merk }, bevindingen: "gebeld" }));
+    expect(s.punten["geg:btw"].afgehandeld?.door).toBe("gill@g-bit.be");
+    expect(s.bevindingen).toBe("gebeld");
+    expect(s.eigen).toEqual([]);
   });
 });

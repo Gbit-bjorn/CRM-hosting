@@ -1,10 +1,14 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { leesStand, rondeSleutel, type Stand } from "@/lib/ronde";
+import { eigenSleutel, leesStand, rondeSleutel, type BlokId, type PuntStand, type Stand } from "@/lib/ronde";
 
 type Body =
   | { actie: "afhandelen"; klantId: string; sleutel: string; reden: string }
+  | { actie: "betwisten"; klantId: string; sleutel: string; reden: string }
   | { actie: "heropenen"; klantId: string; sleutel: string }
+  | { actie: "opmerking"; klantId: string; sleutel: string; tekst: string }
+  | { actie: "eigen-toevoegen"; klantId: string; id: string; blok: BlokId; titel: string }
+  | { actie: "eigen-verwijderen"; klantId: string; id: string }
   | { actie: "bevindingen"; klantId: string; tekst: string }
   | { actie: "afgewerkt"; klantId: string; aan: boolean }
   | { actie: "factuur"; klantId: string; momentId: string; gefactureerd: boolean };
@@ -14,6 +18,15 @@ async function bewaar(klantId: string, wijzig: (s: Stand) => Stand) {
   const rij = await db.instelling.findUnique({ where: { key } });
   const value = JSON.stringify(wijzig(leesStand(rij?.value)));
   await db.instelling.upsert({ where: { key }, create: { key, value }, update: { value } });
+}
+
+/** Past één punt aan; een leeg resultaat verdwijnt uit de map. */
+function zetPunt(s: Stand, sleutel: string, wijzig: (p: PuntStand) => PuntStand): Stand {
+  const nieuw = wijzig(s.punten[sleutel] ?? {});
+  const punten = { ...s.punten };
+  if (Object.keys(nieuw).length === 0) delete punten[sleutel];
+  else punten[sleutel] = nieuw;
+  return { ...s, punten };
 }
 
 export async function POST(req: Request) {
@@ -26,17 +39,49 @@ export async function POST(req: Request) {
 
   switch (body.actie) {
     case "afhandelen":
-      await bewaar(body.klantId, (s) => ({
-        ...s,
-        afgehandeld: { ...s.afgehandeld, [body.sleutel]: { reden: body.reden, door, op } },
-      }));
+      await bewaar(body.klantId, (s) =>
+        zetPunt(s, body.sleutel, (p) => {
+          const { betwist: _weg, ...rest } = p;
+          return { ...rest, afgehandeld: { reden: body.reden, door, op } };
+        }),
+      );
+      break;
+
+    case "betwisten":
+      await bewaar(body.klantId, (s) =>
+        zetPunt(s, body.sleutel, (p) => {
+          const { afgehandeld: _weg, ...rest } = p;
+          return { ...rest, betwist: { reden: body.reden, door, op } };
+        }),
+      );
       break;
 
     case "heropenen":
+      await bewaar(body.klantId, (s) =>
+        zetPunt(s, body.sleutel, ({ afgehandeld: _a, betwist: _b, ...rest }) => rest),
+      );
+      break;
+
+    case "opmerking":
+      await bewaar(body.klantId, (s) =>
+        zetPunt(s, body.sleutel, ({ opmerking: _o, ...rest }) =>
+          body.tekst.trim() ? { ...rest, opmerking: { tekst: body.tekst, door, op } } : rest,
+        ),
+      );
+      break;
+
+    case "eigen-toevoegen":
+      await bewaar(body.klantId, (s) => ({
+        ...s,
+        eigen: [...s.eigen, { id: body.id, blok: body.blok, titel: body.titel, door, op }],
+      }));
+      break;
+
+    case "eigen-verwijderen":
       await bewaar(body.klantId, (s) => {
-        const rest = { ...s.afgehandeld };
-        delete rest[body.sleutel];
-        return { ...s, afgehandeld: rest };
+        const punten = { ...s.punten };
+        delete punten[eigenSleutel(body.id)];
+        return { ...s, punten, eigen: s.eigen.filter((e) => e.id !== body.id) };
       });
       break;
 
@@ -54,13 +99,11 @@ export async function POST(req: Request) {
         data: { status: body.gefactureerd ? "gefactureerd" : "te_doen" },
       });
       // Wie de regel afvinkte staat nergens op FactuurMoment — hou het hier bij.
-      await bewaar(body.klantId, (s) => {
-        const sleutel = `fact:${body.momentId}`;
-        const rest = { ...s.afgehandeld };
-        if (body.gefactureerd) rest[sleutel] = { reden: "gefactureerd", door, op };
-        else delete rest[sleutel];
-        return { ...s, afgehandeld: rest };
-      });
+      await bewaar(body.klantId, (s) =>
+        zetPunt(s, `fact:${body.momentId}`, ({ afgehandeld: _a, ...rest }) =>
+          body.gefactureerd ? { ...rest, afgehandeld: { reden: "gefactureerd", door, op } } : rest,
+        ),
+      );
       break;
 
     default:

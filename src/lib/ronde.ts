@@ -393,21 +393,45 @@ export function bouwDossiers(inv: Invoer): Dossier[] {
 }
 
 /** Alleen dit wordt bewaard: wat het CRM niet uit de eigen data kan afleiden. */
-export type Afhandeling = { reden: string; door: string; op: string };
+export type Merk = { reden: string; door: string; op: string };
+
+/** Wat een mens over één punt kwijt wil. Alle drie de velden zijn onafhankelijk. */
+export type PuntStand = {
+  /** Bewust afgesloten: het CRM ziet het probleem nog, maar het hoeft niet opgelost. */
+  afgehandeld?: Merk;
+  /** Het CRM denkt dat dit in orde is, maar iemand weet beter. Telt als open. */
+  betwist?: Merk;
+  opmerking?: { tekst: string; door: string; op: string };
+};
+
+/** Een punt dat het CRM niet kent, met de hand toegevoegd aan een blok. */
+export type EigenPunt = { id: string; blok: BlokId; titel: string; door: string; op: string };
+
 export type Stand = {
-  afgehandeld: Record<string, Afhandeling>;
+  punten: Record<string, PuntStand>;
+  eigen: EigenPunt[];
   bevindingen: string;
   afgewerkt: { door: string; op: string } | null;
 };
 
-export const legeStand = (): Stand => ({ afgehandeld: {}, bevindingen: "", afgewerkt: null });
+export const legeStand = (): Stand => ({ punten: {}, eigen: [], bevindingen: "", afgewerkt: null });
+
+export const eigenSleutel = (id: string) => `eigen:${id}`;
+
+type OudeStand = { afgehandeld?: Record<string, Merk> };
 
 export function leesStand(value: string | null | undefined): Stand {
   if (!value) return legeStand();
   try {
-    const v = JSON.parse(value) as Partial<Stand>;
+    const v = JSON.parse(value) as Partial<Stand> & OudeStand;
+    const punten: Record<string, PuntStand> = { ...(v.punten ?? {}) };
+    // Eerste versie bewaarde enkel een platte afgehandeld-map.
+    for (const [sleutel, merk] of Object.entries(v.afgehandeld ?? {})) {
+      punten[sleutel] = { ...punten[sleutel], afgehandeld: merk };
+    }
     return {
-      afgehandeld: v.afgehandeld ?? {},
+      punten,
+      eigen: v.eigen ?? [],
       bevindingen: v.bevindingen ?? "",
       afgewerkt: v.afgewerkt ?? null,
     };
